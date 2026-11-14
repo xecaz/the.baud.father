@@ -1,0 +1,17 @@
+# systemd user unit for tools/mailbell.py (Thunderbird -> "Incoming e-mail" on the Baudfather).
+# Install:  cp tools/mailbell.service ~/.config/systemd/user/baudfather-mail.service
+#           systemctl --user daemon-reload && systemctl --user enable --now baudfather-mail
+# Status:   systemctl --user status baudfather-mail ; journalctl --user -u baudfather-mail -f
+# Remove:   systemctl --user disable --now baudfather-mail && rm ~/.config/systemd/user/baudfather-mail.service
+[Unit]
+Description=Baudfather: ring the modem doorbell on new mail (Thunderbird notifications)
+After=graphical-session.target bluetooth.target
+
+[Service]
+# Set the path to where this repo lives (%h = your home directory).
+ExecStart=/usr/bin/python3 -I %h/the.baud.father/tools/mailbell.py
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=graphical-session.target

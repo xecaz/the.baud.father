@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1170" height="760" viewBox="0 0 1170 760" font-family="DejaVu Sans, Arial, sans-serif" font-size="13">
+  <rect width="1170" height="760" fill="#fff"/>
+  <text x="20" y="32" font-size="20" font-weight="bold">HW-027 MAX3232 carrier: what goes where (one carrier per modem)</text>
+  <text x="20" y="54" fill="#555">Pad map measured 2026-11-09 (wiring.md). Positions as you measured them; check each pad with the meter from its chip leg before soldering.</text>
+  <text x="20" y="72" fill="#555">GPIO numbers: dialer / answerer.  Colours: <tspan fill="#1b7f3b" font-weight="bold">TTL → carrier pins → ESP32</tspan>,  <tspan fill="#c05a00" font-weight="bold">RS232 → ribbon → DB9</tspan>,  <tspan fill="#c0392b" font-weight="bold">power</tspan>.</text>
+
+  <!-- ================= ribbon ================= -->
+  <text x="20" y="112" font-weight="bold">DB9 ribbon (9 wires, plug cut off)</text>
+  <text x="20" y="128" fill="#555" font-size="12">wire 1 = red stripe; odd wires used, even cut short</text>
+  <g font-size="12">
+    <rect x="20" y="146" width="16" height="22" fill="#c0392b"/><text x="44" y="162" fill="#c05a00"><tspan font-weight="bold">1</tspan> = DB9 1 DCD → R1IN (back 13)</text>
+    <rect x="20" y="172" width="16" height="22" fill="#bbb"/><text x="44" y="188" fill="#999"><tspan font-weight="bold">2</tspan> = DB9 6 DSR, cut short</text>
+    <rect x="20" y="198" width="16" height="22" fill="#e8a33d"/><text x="44" y="214" fill="#c05a00"><tspan font-weight="bold">3</tspan> = DB9 2 RxD → R2IN (front)</text>
+    <rect x="20" y="224" width="16" height="22" fill="#bbb"/><text x="44" y="240" fill="#999"><tspan font-weight="bold">4</tspan> = DB9 7 RTS, cut short</text>
+    <rect x="20" y="250" width="16" height="22" fill="#e8a33d"/><text x="44" y="266" fill="#c05a00"><tspan font-weight="bold">5</tspan> = DB9 3 TxD → T2OUT (front)</text>
+    <rect x="20" y="276" width="16" height="22" fill="#bbb"/><text x="44" y="292" fill="#999"><tspan font-weight="bold">6</tspan> = DB9 8 CTS, cut short</text>
+    <rect x="20" y="302" width="16" height="22" fill="#e8a33d"/><text x="44" y="318" fill="#c05a00"><tspan font-weight="bold">7</tspan> = DB9 4 DTR → T1OUT (back 14)</text>
+    <rect x="20" y="328" width="16" height="22" fill="#bbb"/><text x="44" y="344" fill="#999"><tspan font-weight="bold">8</tspan> = DB9 9 RI, cut short</text>
+    <rect x="20" y="354" width="16" height="22" fill="#555"/><text x="44" y="370" fill="#333"><tspan font-weight="bold">9</tspan> = DB9 5 GND → − strip (pin 2)</text>
+  </g>
+  <g font-size="12" fill="#555">
+    <text x="20" y="404">Wire 9 is the outermost (opposite the red).</text>
+    <text x="20" y="420">Assumed order: wire 1,2,3,4… = DB9 1,6,2,7…</text>
+    <text x="20" y="436">Check each used wire with the meter against</text>
+    <text x="20" y="452">the DB9 pin numbers before soldering.</text>
+    <text x="20" y="484" font-weight="bold" fill="#333">Strain relief:</text>
+    <text x="20" y="500">hot-glue the ribbon to the carrier board,</text>
+    <text x="20" y="516">leave a small slack loop to the pads.</text>
+    <text x="20" y="548" font-weight="bold" fill="#333">Solder order:</text>
+    <text x="20" y="564">1. back pads 11, 12 (to strips 5, 6)</text>
+    <text x="20" y="580">2. back pads 13, 14 (ribbon 1, 7)</text>
+    <text x="20" y="596">3. front: T2IN, R2OUT (strips 3, 4)</text>
+    <text x="20" y="612">4. front: R2IN, T2OUT (ribbon 3, 5)</text>
+    <text x="20" y="628">5. ribbon 9 → − strip, then glue</text>
+    <text x="20" y="644">6. meter: DB9 1→13, 2→8, 3→7, 4→14, 5→−</text>
+  </g>
+
+  <g transform="translate(170,0)">
+  <!-- ================= FRONT ================= -->
+  <text x="510" y="102" text-anchor="middle" font-weight="bold">FRONT (component side, chip dot bottom-left)</text>
+  <rect x="420" y="112" width="180" height="210" rx="6" fill="#2a5db0"/>
+  <rect x="465" y="170" width="90" height="100" fill="#111"/>
+  <circle cx="474" cy="260" r="4" fill="#bbb"/>
+  <text x="510" y="224" text-anchor="middle" fill="#ddd" font-size="11">MAX3232</text>
+  <circle cx="440" cy="135" r="9" fill="#d9b25c" stroke="#fff"/><text x="440" y="139" text-anchor="middle" font-weight="bold">−</text>
+  <circle cx="440" cy="170" r="9" fill="#d9b25c" stroke="#fff"/><text x="440" y="174" text-anchor="middle" font-weight="bold">+</text>
+  <rect x="430" y="220" width="20" height="20" fill="#d9b25c" stroke="#fff"/>
+  <rect x="430" y="285" width="20" height="20" fill="#d9b25c" stroke="#fff"/>
+  <rect x="570" y="125" width="20" height="20" fill="#d9b25c" stroke="#fff"/>
+  <rect x="570" y="160" width="20" height="20" fill="#d9b25c" stroke="#fff"/>
+  <g stroke-width="2" fill="none">
+    <polyline points="431,135 330,135" stroke="#333"/>
+    <polyline points="431,170 330,170" stroke="#c0392b"/>
+    <polyline points="430,230 330,230" stroke="#c05a00"/>
+    <polyline points="430,295 330,295" stroke="#c05a00"/>
+  </g>
+  <g text-anchor="end" font-size="12">
+    <text x="326" y="131" fill="#333" font-weight="bold">− (15) round</text>
+    <text x="326" y="146" fill="#333">→ pin 2 GND + ribbon 9</text>
+    <text x="326" y="166" fill="#c0392b" font-weight="bold">+ (16) round</text>
+    <text x="326" y="181" fill="#c0392b">→ pin 1 3V3</text>
+    <text x="326" y="226" fill="#c05a00" font-weight="bold">R2IN (8) "→"</text>
+    <text x="326" y="241" fill="#c05a00">← ribbon 3 (DB9 2, RxD)</text>
+    <text x="326" y="291" fill="#c05a00" font-weight="bold">T2OUT (7) "←" bottom</text>
+    <text x="326" y="306" fill="#c05a00">→ ribbon 5 (DB9 3, TxD)</text>
+  </g>
+  <g stroke-width="2" fill="none" stroke="#1b7f3b">
+    <polyline points="590,135 690,135"/>
+    <polyline points="590,170 690,170"/>
+  </g>
+  <g font-size="12" fill="#1b7f3b">
+    <text x="696" y="131" font-weight="bold">R2OUT (9) "→" top</text>
+    <text x="696" y="146">→ pin 4 → GPIO16 / 33 (ESP RX)</text>
+    <text x="696" y="166" font-weight="bold">T2IN (10) "←"</text>
+    <text x="696" y="181">← pin 3 ← GPIO17 / 32 (ESP TX)</text>
+  </g>
+  <text x="696" y="215" font-size="12" fill="#555">Front: RS232 pads left end,</text>
+  <text x="696" y="231" font-size="12" fill="#555">TTL pads right end.</text>
+
+  <!-- ================= BACK ================= -->
+  <text x="510" y="392" text-anchor="middle" font-weight="bold">BACK (board flipped left↔right): solder first</text>
+  <rect x="420" y="402" width="180" height="210" rx="6" fill="#2a5db0"/>
+  <text x="485" y="505" text-anchor="middle" fill="#ddd" font-size="11">caps</text>
+  <rect x="570" y="420" width="20" height="20" fill="#d9b25c" stroke="#fff"/>
+  <rect x="570" y="465" width="20" height="20" fill="#d9b25c" stroke="#fff"/>
+  <rect x="570" y="510" width="20" height="20" fill="#d9b25c" stroke="#fff"/>
+  <rect x="570" y="555" width="20" height="20" fill="#d9b25c" stroke="#fff"/>
+  <g stroke-width="2" fill="none">
+    <polyline points="590,430 690,430" stroke="#c05a00"/>
+    <polyline points="590,475 690,475" stroke="#c05a00"/>
+    <polyline points="590,520 690,520" stroke="#1b7f3b"/>
+    <polyline points="590,565 690,565" stroke="#1b7f3b"/>
+  </g>
+  <g font-size="12">
+    <text x="696" y="426" fill="#c05a00" font-weight="bold">T1OUT (14) top right</text>
+    <text x="696" y="441" fill="#c05a00">→ ribbon 7 (DB9 4, DTR)</text>
+    <text x="696" y="471" fill="#c05a00" font-weight="bold">R1IN (13) 2nd</text>
+    <text x="696" y="486" fill="#c05a00">← ribbon 1, red (DB9 1, DCD)</text>
+    <text x="696" y="516" fill="#1b7f3b" font-weight="bold">T1IN (11) 3rd</text>
+    <text x="696" y="531" fill="#1b7f3b">← pin 5 ← GPIO18 / 21 (DTR)</text>
+    <text x="696" y="561" fill="#1b7f3b" font-weight="bold">R1OUT (12) bottom right</text>
+    <text x="696" y="576" fill="#1b7f3b">→ pin 6 → GPIO19 / 22 (DCD)</text>
+  </g>
+
+  <!-- ================= carrier header ================= -->
+  <text x="420" y="652" font-weight="bold">Carrier pins into the main board (one pin per strip):</text>
+  <g font-size="12">
+    <text x="420" y="672"><tspan fill="#c0392b">1 +  3V3</tspan>   <tspan fill="#333">2 −  GND</tspan>   <tspan fill="#1b7f3b">3 TX (T2IN)  17/32</tspan>   <tspan fill="#1b7f3b">4 RX (R2OUT)  16/33</tspan></text>
+    <text x="420" y="690"><tspan fill="#1b7f3b">5 DTR (T1IN)  18/21</tspan>   <tspan fill="#1b7f3b">6 DCD (R1OUT)  19/22</tspan>   <tspan fill="#555">(3–6: suggested order, use any free strips)</tspan></text>
+    <text x="420" y="712" fill="#555">Cut strips under the module where a pad's strip would meet another net.</text>
+    <text x="420" y="730" fill="#555">Loopback test without a modem: short DB9 pins 2–3, what the ESP sends comes back.</text>
+  </g>
+  </g>
+</svg>

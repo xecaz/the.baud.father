@@ -1,0 +1,7 @@
+# Name,   Type, SubType, Offset,   Size
+# nvs/phy/factory at the same offsets as the old "single app large" table: BLE bonds in NVS survive.
+nvs,      data, nvs,     0x9000,   0x6000
+phy_init, data, phy,     0xf000,   0x1000
+factory,  app,  factory, 0x10000,  0x180000
+# Sound bank (audio.c, tools/mksounds.py): rest of the 4 MB flash, ~2.4 MB = ~5 min at 8 kHz.
+sounds,   data, 0x40,    0x190000, 0x270000

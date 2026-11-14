@@ -1,0 +1,339 @@
+I (45302) doorbell: button held 0 ms
+>>> :d
+# dialer selected (buttons/BLE calls paused until :off)
+>>> AT$
+AT$
+HELP,  Command Quick Reference (CTRL-S to Stop, CTRL-C to Cancel)
+
+#$    HELP, Octothorpe Commands      Kn    n=0  Call Duration Mode        
+&$    HELP, Ampersand Commands             n=1  Real Time Clock Mode      
+%$    HELP, Percent Commands         Mn    n=0  Speaker Off               
+A/    Repeat Last Command                  n=1  Speaker On Until CD       
+AT    Command Mode Prefix                  n=2  Speaker Always On         
+A     Answer Call                          n=3  Speaker Off During Dial   
+Bn    n=0  V.32 originate mode       On    n=0  Return Online              
+      n=1  HST originate mode              n=1  Return Online & Retrain    
+Cn    n=0  Transmitter Off                 n=2  Return Online & Speed Shift
+      n=1  Transmitter On            P     Pulse Dial                     
+Dn    Dial a Telephone Number        Qn    n=0  Result Codes Sent         
+      n=0..9#*TPR,;"W@!()-                 n=1  Quiet (No Result Codes)   
+DL    Dial Last Phone Number               n=2  Verbose/Quiet On Answer   
+DSn   Dial Stored Phone Number       Sr=n  Sets Register "r" to "n"       
+D$    HELP, Dial Commands            Sr?   Query Register "r"             
+En    n=0  No Command Echo           S$    HELP, S Registers              
+      n=1  Echo Command Chars        T     Tone Dial                      
+Fn    n=0  Online Echo               Vn    n=0  Numeric Responses         
+      n=1  No Online Echo                  n=1  Verbal Responses          
+Strike a key when ready . . . >>> AT&$
+Hn    n=0  On Hook (Hang Up)         Xn    n=0  Basic Result Codes        
+      n=1  Off Hook                        n=1  Extended Result Codes     
+In    n=0  Product Code                    n=2-7  Advanced Result Codes   
+      n=1  Checksum                  Z     Software Reset                 
+      n=2  RAM Test                  Z!    Hardware Reset                 
+      n=3  Banner/Clock set          +++   Escape Code                    
+      n=4  Current Settings          $     HELP,  Command Summary         
+      n=5  NVRAM Settings            
+      n=6  Link Diagnostics          
+      n=7  Product Configuration     
+      n=10 Dial Security Status    
+      n=11 Extended Link Screen      
+      n=16 Channel Probe             
+      n=17 Training Signature        
+
+OK
+>>> ATS$
+ATS$
+HELP, S Register Functions (CTRL-S to Stop, CTRL-C to Cancel)
+
+S0  Ring to Answer On                  S38 Disconnect Wait Time (sec)         
+S1  Counts # of Rings                  S39 Reserved                           
+S2  Escape Code Char                   S40 Reserved                           
+S3  Carriage Return Char               S41 # of Allowed Login Attempts        
+S4  Line Feed Char                     S42 Remote Escape Code Char            
+S5  Backspace Char                     S43 Remote Escape Code Time (1/50sec)  
+S6  Wait Time/Dial Tone (sec)          S44 Leased Line Delay Timer (sec)      
+S7  Wait Time/Carrier (sec)            S45 Reserved                           
+S8  Comma Time (sec)                   S46 Reserved                           
+S9  Carrier Detect Time (1/10sec)      S47 Reserved                           
+S10 Carrier Loss Time (1/10sec)        S48 Reserved                           
+S11 Dial Tone Spacing (msec)           S49 Reserved                           
+S12 Escape Code Time (1/50sec)         S50 Reserved                           
+S13 Bit Mapped                         S51 Bit Mapped                         
+      1 = Reset On DTR Loss                  1 = MNP/V.42 Disabled in V.22    
+      2 = Do Originate in Auto Answer        2 = MNP/V.42 Disabled in V.22bis 
+      4 = No Pause Before Result Codes       4 = MNP/V.42 Disabled in V.32    
+      8 = Do DS0 On DTR                      8 = Reserved                      
+     16 = Do DS0 On Reset                   16 = Reserved                     
+Strike a key when ready . . . >>> ATI7
+     32 = Disable HST                       32 = Reserved                     
+     64 = Disable MNP Level 3               64 = Disable Selective Reject   
+    128 = Hardware Reset                   128 = Reserved                    
+S14 Bit Mapped                         S52 Reserved                           
+      1 = Escape Code Hang Up          S53 Bit Mapped                         
+S15 Bit Mapped                               1 = Enable Dial Security         
+      1 = Disable High-Freq EQ               2 = Enable Autopass Fallback     
+      2 = Disable Online Fallback            4 = Enable Local Access Psw      
+      4 = Disable 450 bps Back Channel       8 = Reserved                     
+      8 = Reduced Non-ARQ TX Buffer         16 = Reserved                     
+     16 = Disable MNP Level 4               32 = Reserved                     
+     32 = Set DEL=Backspace                 64 = Reserved                     
+     64 = Unusual MNP-Incompatibility      128 = Reserved                     
+    128 = Custom Applications          S54 Bit Mapped                         
+S16 Test Modes                               1 = Disable 2400 symbol rate   
+      1 = Analog Loopback                    2 = Disable 2743 symbol rate   
+      2 = Dial Test                          4 = Disable 2800 symbol rate   
+      4 = Test Pattern                       8 = Disable 3000 symbol rate   
+      8 = Remote Digital Loopback           16 = Disable 3200 symbol rate   
+Strike a key when ready . . . >>> :off
+# released, calls enabled (DTR stays on: modems idle ready)
+I (63511) doorbell: button held 0 ms
+>>> :d
+# dialer selected (buttons/BLE calls paused until :off)
+>>> AT$
+AT$
+HELP,  Command Quick Reference (CTRL-S to Stop, CTRL-C to Cancel)
+
+#$    HELP, Octothorpe Commands      Kn    n=0  Call Duration Mode        
+&$    HELP, Ampersand Commands             n=1  Real Time Clock Mode      
+%$    HELP, Percent Commands         Mn    n=0  Speaker Off               
+A/    Repeat Last Command                  n=1  Speaker On Until CD       
+AT    Command Mode Prefix                  n=2  Speaker Always On         
+A     Answer Call                          n=3  Speaker Off During Dial   
+Bn    n=0  V.32 originate mode       On    n=0  Return Online              
+      n=1  HST originate mode              n=1  Return Online & Retrain    
+Cn    n=0  Transmitter Off                 n=2  Return Online & Speed Shift
+      n=1  Transmitter On            P     Pulse Dial                     
+Dn    Dial a Telephone Number        Qn    n=0  Result Codes Sent         
+      n=0..9#*TPR,;"W@!()-                 n=1  Quiet (No Result Codes)   
+DL    Dial Last Phone Number               n=2  Verbose/Quiet On Answer   
+DSn   Dial Stored Phone Number       Sr=n  Sets Register "r" to "n"       
+D$    HELP, Dial Commands            Sr?   Query Register "r"             
+En    n=0  No Command Echo           S$    HELP, S Registers              
+      n=1  Echo Command Chars        T     Tone Dial                      
+Fn    n=0  Online Echo               Vn    n=0  Numeric Responses         
+      n=1  No Online Echo                  n=1  Verbal Responses          
+Strike a key when ready . . . >>> 
+Hn    n=0  On Hook (Hang Up)         Xn    n=0  Basic Result Codes        
+      n=1  Off Hook                        n=1  Extended Result Codes     
+In    n=0  Product Code                    n=2-7  Advanced Result Codes   
+      n=1  Checksum                  Z     Software Reset                 
+      n=2  RAM Test                  Z!    Hardware Reset                 
+      n=3  Banner/Clock set          +++   Escape Code                    
+      n=4  Current Settings          $     HELP,  Command Summary         
+      n=5  NVRAM Settings            
+      n=6  Link Diagnostics          
+      n=7  Product Configuration     
+      n=10 Dial Security Status    
+      n=11 Extended Link Screen      
+      n=16 Channel Probe             
+      n=17 Training Signature        
+
+OK
+>>> 
+>>> 
+>>> AT&$
+AT&$
+HELP, Ampersand Commands (CTRL-S to Stop, CTRL-C to Cancel)
+
+&An   n=0  Disable /ARQ Result Codes   &Pn   n=0  N.American Pulse Dial       
+      n=1  Enable /ARQ Result Codes          n=1  UK Pulse Dial               
+      n=2  Enable /Modulation Codes    &Rn   n=0  CTS Follows RTS             
+      n=3  Enable /Extra Result Codes        n=1  Ignore RTS                  
+&Bn   n=0  Floating DTE Speed                n=2  RX to DTE/RTS high          
+      n=1  Fixed DTE Speed             &Sn   n=0  DSR Always On               
+      n=2  DTE Speed Fixed When ARQ          n=1  Modem Controls DSR          
+&Cn   n=0  CD Always On                      n=2  Pulse DSR, CTS=CD           
+      n=1  Modem Controls CD                 n=3  Pulse DSR                   
+&Dn   n=0  Ignore DTR                        n=4  DSR = DCD              
+      n=1  On-Line Command Mode              n=5  Modem Controls DSR, CTS=CD 
+      n=2  DTE Controls DTR            &Tn   n=0  End Test                    
+&Fn   n=0  Load Factory Configuration        n=1  Analog Loopback (ALB)       
+      n=1  Hardware Flow Control Cnfg.       n=3  Digital Loopback (DLB)      
+      n=2  Software Flow Control Cnfg.       n=4  Grant Remote DLB            
+&Gn   n=0  No Guard Tone                     n=5  Deny Remote DLB             
+      n=1  550 Hz Guard Tone                 n=6  Remote Digital Loopback     
+      n=2  1800 Hz Guard Tone                n=7  Remote DLB With Self Test   
+&Hn   n=0  Disable TX Flow Control           n=8  ALB With Self Test          
+Strike a key when ready . . . >>> 
+      n=1  CTS                         &Un   Lowest Link Speed Limit   
+      n=2  Xon/Xoff                          n=0  Disabled   
+      n=3  CTS and Xon/Xoff                  n=1  300 bps                     
+&In   n=0  Disable RX Flow Control           n=2  1200 bps                    
+      n=1  Xon/Xoff                          n=3  2400 bps                    
+      n=2  Xon/Xoff Chars Filtered           n=4  4800 bps                    
+      n=3  HP Enq/Ack Host Mode              n=5  7200 bps                    
+      n=4  HP Enq/Ack Terminal Mode          n=6  9600 bps                    
+      n=5  Xon/Xoff for non-ARQ Mode         n=7  12000 bps                   
+&Kn   n=0  Disable Data Compression          n=8  14400 bps                   
+      n=1  Auto Data Compression             n=9  16800 bps                   
+      n=2  Enable Data Compression           n=10 19200 bps                   
+      n=3  Selective Data Compression        n=11 21600 bps                   
+&Ln   n=0  Disable Leased Line               n=12 24000 bps                   
+      n=1  Enable Leased Line                n=13 26400 bps                   
+&Mn   n=0  Normal Mode                       n=14 28800 bps                   
+      n=1  Synchronous Mode                  n=15 31200 bps                   
+      n=4  ARQ/Normal Mode                   n=16 33600 bps                   
+      n=5  ARQ Mode                          n=17 28000 bps                   
+Strike a key when ready . . . >>> 
+      n=6  V.25bis                           n=18 29333 bps                   
+      n=7  V.25bis HDLC                      n=19 30666 bps                   
+&Nn   n=0  Highest Link Speed                n=20 32000 bps                   
+      n=1  300 bps                           n=21 33333 bps                   
+      n=2  1200 bps                          n=22 34666 bps                   
+      n=3  2400 bps                          n=23 36000 bps                   
+      n=4  4800 bps                          n=24 37333 bps                   
+      n=5  7200 bps                          n=25 38666 bps                   
+      n=6  9600 bps                          n=26 40000 bps                   
+      n=7  12000 bps                         n=27 41333 bps                   
+      n=8  14400 bps                         n=28 42666 bps                   
+      n=9  16800 bps                         n=29 44000 bps                   
+      n=10 19200 bps                         n=30 45333 bps                   
+      n=11 21600 bps                         n=31 46666 bps                   
+      n=12 24000 bps                         n=32 48000 bps                   
+      n=13 26400 bps                         n=33 49333 bps                   
+      n=14 28800 bps                         n=34 50666 bps                   
+      n=15 31200 bps                         n=35 52000 bps                   
+      n=16 33600 bps                         n=36 53333 bps                   
+Strike a key when ready . . . >>> 
+      n=17 28000 bps                         n=37 54666 bps                   
+      n=18 29333 bps                         n=38 56000 bps                   
+      n=19 30666 bps                         n=39 57333 bps                   
+      n=20 32000 bps                   &W    Store Configuration              
+      n=21 33333 bps                   &Xn   n=0  DCE Synchronous Clock       
+      n=22 34666 bps                         n=1  DTE Synchronous Clock       
+      n=23 36000 bps                         n=2  RX Clock is Source          
+      n=24 37333 bps                   &Yn   n=0  Destructive                 
+      n=25 38666 bps                         n=1  Destructive/Expedited       
+      n=26 40000 bps                         n=2  Nondest./Expedited          
+      n=27 41333 bps                         n=3  Nondest./Unexpedited        
+      n=28 42666 bps                   &Zn=s Store Phone Number               
+      n=29 44000 bps                   &Zn=L Store Last Phone Number          
+      n=30 45333 bps                   &Zn?  Query Phone Number               
+      n=31 46666 bps                   &ZC=s Store Command   
+      n=32 48000 bps                   
+      n=33 49333 bps                   
+      n=34 50666 bps                   
+      n=35 52000 bps                   
+Strike a key when ready . . . >>> 
+      n=36 53333 bps                   
+      n=37 54666 bps                   
+      n=38 56000 bps                   
+      n=39 57333 bps                   
+
+OK
+>>> 
+>>> 
+>>> ATS$
+ATS$
+HELP, S Register Functions (CTRL-S to Stop, CTRL-C to Cancel)
+
+S0  Ring to Answer On                  S38 Disconnect Wait Time (sec)         
+S1  Counts # of Rings                  S39 Reserved                           
+S2  Escape Code Char                   S40 Reserved                           
+S3  Carriage Return Char               S41 # of Allowed Login Attempts        
+S4  Line Feed Char                     S42 Remote Escape Code Char            
+S5  Backspace Char                     S43 Remote Escape Code Time (1/50sec)  
+S6  Wait Time/Dial Tone (sec)          S44 Leased Line Delay Timer (sec)      
+S7  Wait Time/Carrier (sec)            S45 Reserved                           
+S8  Comma Time (sec)                   S46 Reserved                           
+S9  Carrier Detect Time (1/10sec)      S47 Reserved                           
+S10 Carrier Loss Time (1/10sec)        S48 Reserved                           
+S11 Dial Tone Spacing (msec)           S49 Reserved                           
+S12 Escape Code Time (1/50sec)         S50 Reserved                           
+S13 Bit Mapped                         S51 Bit Mapped                         
+      1 = Reset On DTR Loss                  1 = MNP/V.42 Disabled in V.22    
+      2 = Do Originate in Auto Answer        2 = MNP/V.42 Disabled in V.22bis 
+      4 = No Pause Before Result Codes       4 = MNP/V.42 Disabled in V.32    
+      8 = Do DS0 On DTR                      8 = Reserved                      
+     16 = Do DS0 On Reset                   16 = Reserved                     
+Strike a key when ready . . . >>> 
+     32 = Disable HST                       32 = Reserved                     
+     64 = Disable MNP Level 3               64 = Disable Selective Reject   
+    128 = Hardware Reset                   128 = Reserved                    
+S14 Bit Mapped                         S52 Reserved                           
+      1 = Escape Code Hang Up          S53 Bit Mapped                         
+S15 Bit Mapped                               1 = Enable Dial Security         
+      1 = Disable High-Freq EQ               2 = Enable Autopass Fallback     
+      2 = Disable Online Fallback            4 = Enable Local Access Psw      
+      4 = Disable 450 bps Back Channel       8 = Reserved                     
+      8 = Reduced Non-ARQ TX Buffer         16 = Reserved                     
+     16 = Disable MNP Level 4               32 = Reserved                     
+     32 = Set DEL=Backspace                 64 = Reserved                     
+     64 = Unusual MNP-Incompatibility      128 = Reserved                     
+    128 = Custom Applications          S54 Bit Mapped                         
+S16 Test Modes                               1 = Disable 2400 symbol rate   
+      1 = Analog Loopback                    2 = Disable 2743 symbol rate   
+      2 = Dial Test                          4 = Disable 2800 symbol rate   
+      4 = Test Pattern                       8 = Disable 3000 symbol rate   
+      8 = Remote Digital Loopback           16 = Disable 3200 symbol rate   
+Strike a key when ready . . . >>> 
+     16 = Reserved                          32 = Disable 3429 symbol rate   
+     32 = Reserved                          64 = Disable V.8 Call Indicate    
+     64 = Reserved                         128 = Disable V.8 Mode             
+    128 = Reserved                     S55 Bit Mapped                         
+S17 Reserved                                 1 = Disable 8S-2D trellis code   
+S18 &Tn Test Timeout (sec)                   2 = Disable 16S-4D trellis code  
+S19 Inactivity Timeout (min)                 4 = Disable 32S-2D trellis code  
+S20 Reserved                                 8 = Disable 64S-4D trellis code  
+S21 Break Length (1/100sec)                 16 = Reserved                     
+S22 Xon Char                                32 = Reserved                     
+S23 Xoff Char                               64 = Reserved                     
+S24 DSR Pulse Time (1/50sec)               128 = Enable phase roll detection 
+S25 DTR Recognition Time (1/100sec)    S56 Bit Mapped                         
+S26 RTS/CTS Delay Time (1/100sec)            1 = Disable nonlinear coding
+S27 Bit Mapped                               2 = Disable TX level deviation    
+      1 = Reserved                           4 = Disable preemphasis
+      2 = Disable TCM                        8 = Disable precoding
+      4 = Disable V32                       16 = Disable shaping
+      8 = Disable 2100hz                    32 = Disable V34+
+Strike a key when ready . . . >>> 
+     16 = Disable MNP Handshake             64 = Disable V34
+     32 = Disable V.42                     128 = Disable VFC
+     48 = Disable V.42 Detect Phase    S57 Reserved                           
+     64 = Reserved                     S58 Bit Mapped                         
+    128 = Unusual SW-Incompatibility         1 = Disable x2                    
+S28 V32 Handshake Time (1/10sec)             2 = Reserved                     
+S29 V21 Handshake Time (1/10sec)             4 = Reserved                     
+S30 Bit Mapped                               8 = Reserved                     
+      1 = Enable feature upgrades           16 = Reserved                     
+S31 Reserved                                32 = Disable V.90                  
+S32 Talk/Data Switch                        64 = Reserved                     
+      0 = Disabled                         128 = Reserved                    
+      1 = Originate Mode               S59 Reserved                           
+      2 = Answer Mode                  S60 Reserved                           
+      3 = Redial Last Number           S61 Reserved                           
+      4 = Dial Stored Number 0         S62 Reserved                           
+      5 = Auto Answer Toggle           S63 Reserved                           
+      6 = Reset Modem                  S64 Reserved                           
+      7 = Initiate RDL                 S65 Reserved                           
+Strike a key when ready . . . >>> 
+      8 = Busy Toggle                  S66 Reserved                           
+      9 = Execute Stored Cmd           S67 Reserved                           
+S33 Reserved                           S68 Reserved                           
+S34 Bit Mapped                         S69 Bit Mapped                         
+      1 = Disable V32bis                     1 = Disable External PnP 
+      2 = Disable Enhanced V32 mode          2 = Reserved                      
+      4 = Disable Quick V32 retrain          4 = HS LED at 14400            
+      8 = Enable V23 Fallback                8 = HS LED at 16800            
+     16 = Change MR to DSR                  12 = HS LED in V.90             
+     32 = Enable MI/MIC                     16 = Reserved                      
+     64 = Disable RA Busy Msg               32 = Reserved                      
+    128 = Disable Terbo                     64 = Reserved                      
+S35 Reserved                               128 = Reserved                     
+S36 Reserved                           S70 Reserved                           
+S37 Reserved                           
+
+OK
+>>> 
+>>> 
+>>> 
+>>> 
+>>> 
+>>> 
+>>> 
+>>> 
+>>> AT
+AT
+OK
+>>> :off
+# released, calls enabled (DTR stays on: modems idle ready)

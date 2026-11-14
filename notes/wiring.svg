@@ -1,0 +1,237 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1100" viewBox="0 0 1500 1100" font-family="DejaVu Sans, Arial, sans-serif" font-size="14">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/>
+    </marker>
+    <style>
+      .box{fill:#f7f7f9;stroke:#333;stroke-width:2;rx:8}
+      .t{fill:#111}
+      .s{fill:#555;font-size:12px}
+      .h{font-weight:bold;font-size:16px}
+      .tx{stroke:#1f6fd1;stroke-width:2.5;fill:none}
+      .rx{stroke:#1b9e4b;stroke-width:2.5;fill:none}
+      .dtr{stroke:#e07b00;stroke-width:2.5;fill:none}
+      .dcd{stroke:#8e44ad;stroke-width:2.5;fill:none}
+      .gnd{stroke:#777;stroke-width:2;fill:none;stroke-dasharray:6 4}
+      .ln{stroke:#c0392b;stroke-width:2.5;fill:none}
+      .au{stroke:#d4a000;stroke-width:2.5;fill:none}
+      .opt{stroke:#999;stroke-width:1.5;fill:none;stroke-dasharray:5 4}
+      .dot{fill:#c0392b}
+    </style>
+  </defs>
+  <rect width="1500" height="1100" fill="#ffffff"/>
+  <text x="40" y="45" class="t" font-size="24" font-weight="bold">modem.doorbell: wiring (design B + 425 Hz dial tone)</text>
+  <text x="40" y="72" class="s">Updated 2026-11-11. ESP32, BLE, audio and both MAX3232 carriers (loopback) tested on the bench; modems and line side not yet. Values marked "start" are bench starting points.</text>
+
+  <!-- ESP32 -->
+  <rect x="40" y="110" width="280" height="600" class="box"/>
+  <text x="60" y="140" class="h">ESP32 WROOM-32 DevKitC</text>
+  <text x="60" y="162" class="s">Bluetooth LE: Android app</text>
+  <text x="60" y="178" class="s">incoming calls via the Android app (BLE)</text>
+  <text x="310" y="234" class="t" text-anchor="end">GPIO17  TX2</text>
+  <text x="310" y="204" class="s" text-anchor="end">— dialer (UART2) —</text>
+  <text x="310" y="264" class="t" text-anchor="end">GPIO16  RX2</text>
+  <text x="310" y="294" class="t" text-anchor="end">GPIO18  DTR</text>
+  <text x="310" y="324" class="t" text-anchor="end">GPIO19  DCD</text>
+  <text x="310" y="349" class="t" text-anchor="end">GND</text>
+  <text x="310" y="424" class="s" text-anchor="end">— answerer (UART1) —</text>
+  <text x="310" y="454" class="t" text-anchor="end">GPIO32  TX1</text>
+  <text x="310" y="484" class="t" text-anchor="end">GPIO33  RX1</text>
+  <text x="310" y="514" class="t" text-anchor="end">GPIO21  DTR</text>
+  <text x="310" y="544" class="t" text-anchor="end">GPIO22  DCD</text>
+  <text x="310" y="569" class="t" text-anchor="end">GND</text>
+  <text x="310" y="644" class="t" text-anchor="end">GPIO25  DAC1</text>
+  <text x="60" y="594" class="s">GPIO4 = RING btn, GPIO0 = BOOT</text>
+  <text x="60" y="610" class="s">GPIO2 = green LED + 330 Ω to GND</text>
+  <text x="60" y="626" class="s">3V3–GND: 100–470 µF bulk cap (required)</text>
+  <text x="60" y="672" class="s">UART0 (GPIO1/3) = USB flash + logs</text>
+  <text x="60" y="688" class="s">3V3 → pin 1 (+) of both carriers</text>
+
+  <!-- MAX3232 #1 -->
+  <rect x="470" y="200" width="200" height="160" class="box"/>
+  <text x="570" y="196" class="h" text-anchor="middle">Carrier #1 (dialer): HW-027 MAX3232</text>
+  <text x="480" y="234" class="s">3 T2IN</text><text x="660" y="234" class="s" text-anchor="end">T2OUT → DB9 3</text>
+  <text x="480" y="264" class="s">4 R2OUT</text><text x="660" y="264" class="s" text-anchor="end">R2IN ← DB9 2</text>
+  <text x="480" y="294" class="s">5 T1IN</text><text x="660" y="294" class="s" text-anchor="end">T1OUT → DB9 4</text>
+  <text x="480" y="324" class="s">6 R1OUT</text><text x="660" y="324" class="s" text-anchor="end">R1IN ← DB9 1</text>
+  <text x="480" y="349" class="s">2 −</text><text x="660" y="349" class="s" text-anchor="end">− → DB9 5</text>
+
+  <!-- MAX3232 #2 -->
+  <rect x="470" y="420" width="200" height="160" class="box"/>
+  <text x="570" y="416" class="h" text-anchor="middle">Carrier #2 (answerer): HW-027 MAX3232</text>
+  <text x="480" y="454" class="s">3 T2IN</text><text x="660" y="454" class="s" text-anchor="end">T2OUT → DB9 3</text>
+  <text x="480" y="484" class="s">4 R2OUT</text><text x="660" y="484" class="s" text-anchor="end">R2IN ← DB9 2</text>
+  <text x="480" y="514" class="s">5 T1IN</text><text x="660" y="514" class="s" text-anchor="end">T1OUT → DB9 4</text>
+  <text x="480" y="544" class="s">6 R1OUT</text><text x="660" y="544" class="s" text-anchor="end">R1IN ← DB9 1</text>
+  <text x="480" y="569" class="s">2 −</text><text x="660" y="569" class="s" text-anchor="end">− → DB9 5</text>
+
+  <!-- ESP <-> MAX wires -->
+  <line x1="320" y1="230" x2="468" y2="230" class="tx" marker-end="url(#ar)"/>
+  <line x1="468" y1="260" x2="322" y2="260" class="rx" marker-end="url(#ar)"/>
+  <line x1="320" y1="290" x2="468" y2="290" class="dtr" marker-end="url(#ar)"/>
+  <line x1="468" y1="320" x2="322" y2="320" class="dcd" marker-end="url(#ar)"/>
+  <line x1="320" y1="345" x2="470" y2="345" class="gnd"/>
+  <line x1="320" y1="450" x2="468" y2="450" class="tx" marker-end="url(#ar)"/>
+  <line x1="468" y1="480" x2="322" y2="480" class="rx" marker-end="url(#ar)"/>
+  <line x1="320" y1="510" x2="468" y2="510" class="dtr" marker-end="url(#ar)"/>
+  <line x1="468" y1="540" x2="322" y2="540" class="dcd" marker-end="url(#ar)"/>
+  <line x1="320" y1="565" x2="470" y2="565" class="gnd"/>
+
+  <!-- Courier dialer -->
+  <rect x="900" y="185" width="300" height="190" class="box"/>
+  <text x="1050" y="181" class="h" text-anchor="middle">USR Courier V.Everything: DIALER</text>
+  <text x="910" y="234" class="t">DB25 2  TxD   (DB9 3)</text>
+  <text x="910" y="264" class="t">DB25 3  RxD   (DB9 2)</text>
+  <text x="910" y="294" class="t">DB25 20 DTR  (DB9 4)</text>
+  <text x="910" y="324" class="t">DB25 8  DCD   (DB9 1)</text>
+  <text x="910" y="349" class="t">DB25 7  GND  (DB9 5)</text>
+  <text x="1190" y="290" class="t" text-anchor="end" font-weight="bold">LINE</text>
+  <text x="1190" y="368" class="s" text-anchor="end">AA off · &amp;H0&amp;R1 X3 · speaker M2→M1</text>
+
+  <!-- Courier answerer -->
+  <rect x="900" y="405" width="300" height="190" class="box"/>
+  <text x="1050" y="401" class="h" text-anchor="middle">USR Courier Dual Standard: ANSWERER</text>
+  <text x="910" y="454" class="t">DB25 2  TxD   (DB9 3)</text>
+  <text x="910" y="484" class="t">DB25 3  RxD   (DB9 2)</text>
+  <text x="910" y="514" class="t">DB25 20 DTR  (DB9 4)</text>
+  <text x="910" y="544" class="t">DB25 8  DCD   (DB9 1)</text>
+  <text x="910" y="569" class="t">DB25 7  GND  (DB9 5)</text>
+  <text x="1190" y="510" class="t" text-anchor="end" font-weight="bold">LINE</text>
+  <text x="1190" y="588" class="s" text-anchor="end">AA off · &amp;H0&amp;R1 · gets ATA</text>
+
+  <!-- MAX <-> Courier wires -->
+  <line x1="670" y1="230" x2="898" y2="230" class="tx" marker-end="url(#ar)"/>
+  <line x1="898" y1="260" x2="672" y2="260" class="rx" marker-end="url(#ar)"/>
+  <line x1="670" y1="290" x2="898" y2="290" class="dtr" marker-end="url(#ar)"/>
+  <line x1="898" y1="320" x2="672" y2="320" class="dcd" marker-end="url(#ar)"/>
+  <line x1="670" y1="345" x2="900" y2="345" class="gnd"/>
+  <line x1="670" y1="450" x2="898" y2="450" class="tx" marker-end="url(#ar)"/>
+  <line x1="898" y1="480" x2="672" y2="480" class="rx" marker-end="url(#ar)"/>
+  <line x1="670" y1="510" x2="898" y2="510" class="dtr" marker-end="url(#ar)"/>
+  <line x1="898" y1="540" x2="672" y2="540" class="dcd" marker-end="url(#ar)"/>
+  <line x1="670" y1="565" x2="900" y2="565" class="gnd"/>
+  <text x="785" y="222" class="s" text-anchor="middle">RS232 ±5 V</text>
+  <text x="785" y="372" class="s" text-anchor="middle">box DB9 male → DB9F–DB25M cable</text>
+  <text x="785" y="592" class="s" text-anchor="middle">box DB9 male → DB9F–DB25M cable</text>
+  <text x="570" y="378" class="s" text-anchor="middle">header: 1 + 3V3, 2 GND</text>
+  <text x="570" y="392" class="s" text-anchor="middle">DB9 via 9-wire ribbon</text>
+  <text x="570" y="600" class="s" text-anchor="middle">both loopback-tested 2026-11-11</text>
+  <text x="570" y="614" class="s" text-anchor="middle">pads and ribbon: hw027.png</text>
+
+  <!-- Line pair: tip x=1280, ring x=1330 -->
+  <line x1="1200" y1="280" x2="1280" y2="280" class="ln"/>
+  <line x1="1200" y1="300" x2="1330" y2="300" class="ln"/>
+  <line x1="1200" y1="500" x2="1280" y2="500" class="ln"/>
+  <line x1="1200" y1="520" x2="1330" y2="520" class="ln"/>
+  <text x="1262" y="272" class="s" text-anchor="middle">tip</text>
+  <text x="1355" y="296" class="s">ring</text>
+  <!-- tip vertical -->
+  <line x1="1280" y1="280" x2="1280" y2="760" class="ln"/>
+  <!-- ring vertical with optional feed between dialer and answerer -->
+  <line x1="1330" y1="300" x2="1330" y2="340" class="ln"/>
+  <rect x="1320" y="340" width="20" height="44" fill="#fff" stroke="#c0392b" stroke-width="2.5"/>
+  <line x1="1330" y1="384" x2="1330" y2="414" class="ln"/>
+  <line x1="1312" y1="414" x2="1348" y2="414" stroke="#c0392b" stroke-width="3"/>
+  <line x1="1320" y1="424" x2="1340" y2="424" stroke="#c0392b" stroke-width="5"/>
+  <line x1="1330" y1="424" x2="1330" y2="840" class="ln"/>
+  <rect x="1300" y="325" width="190" height="125" class="opt" rx="6"/>
+  <text x="1350" y="360" class="s">470 Ω (start)</text>
+  <text x="1356" y="412" class="s">+ 12 V rail</text>
+  <text x="1356" y="428" class="s">−</text>
+  <text x="1396" y="444" class="s" text-anchor="middle">optional loop feed</text>
+  <circle cx="1280" cy="280" r="4" class="dot"/><circle cx="1330" cy="300" r="4" class="dot"/>
+  <circle cx="1280" cy="500" r="4" class="dot"/><circle cx="1330" cy="520" r="4" class="dot"/>
+  <text x="1345" y="604" class="s">2× RJ11, pins 3–4</text>
+  <text x="1345" y="620" class="s">closed private pair</text>
+  <text x="1345" y="636" class="s">NEVER a real line</text>
+
+  <!-- Dial tone injection -->
+  <polyline points="320,640 400,640 400,760 440,760" class="au"/>
+  <line x1="440" y1="745" x2="440" y2="775" stroke="#333" stroke-width="3"/>
+  <path d="M452,745 Q446,760 452,775" stroke="#333" stroke-width="3" fill="none"/>
+  <text x="430" y="740" class="s" text-anchor="middle">+</text>
+  <text x="446" y="800" class="s" text-anchor="middle">10 µF</text>
+  <text x="446" y="815" class="s" text-anchor="middle">(+ to ESP32)</text>
+  <line x1="450" y1="760" x2="530" y2="760" class="au"/>
+  <rect x="530" y="751" width="70" height="18" fill="#fff" stroke="#333" stroke-width="2"/>
+  <text x="565" y="740" class="s" text-anchor="middle">680 Ω</text>
+  <line x1="600" y1="760" x2="770" y2="760" class="au"/>
+  <text x="345" y="630" class="s">tone + clips</text>
+  <text x="460" y="700" class="s">DMA DAC 8 kHz: clip, then 425 Hz ~0.5 s; then powered down (hi-Z)</text>
+
+  <!-- Transformer -->
+  <path d="M770,760 a10,10 0 0 1 0,20 a10,10 0 0 1 0,20 a10,10 0 0 1 0,20 a10,10 0 0 1 0,20" stroke="#333" stroke-width="2.5" fill="none"/>
+  <line x1="796" y1="755" x2="796" y2="845" stroke="#333" stroke-width="2"/>
+  <line x1="804" y1="755" x2="804" y2="845" stroke="#333" stroke-width="2"/>
+  <path d="M830,760 a10,10 0 0 0 0,20 a10,10 0 0 0 0,20 a10,10 0 0 0 0,20 a10,10 0 0 0 0,20" stroke="#333" stroke-width="2.5" fill="none"/>
+  <text x="800" y="905" class="t" text-anchor="middle" font-weight="bold">Bourns SM-LP-5001</text>
+  <text x="800" y="922" class="s" text-anchor="middle">600:600 Ω · A = pins 1–3, B = pins 6–4 (2, 5 NC)</text>
+  <text x="760" y="768" class="s" text-anchor="end">1</text>
+  <text x="760" y="846" class="s" text-anchor="end">3</text>
+  <text x="840" y="752" class="s">6</text>
+  <text x="840" y="856" class="s">4</text>
+  <!-- primary bottom to GND -->
+  <polyline points="770,840 720,840 720,860" stroke="#333" stroke-width="2" fill="none"/>
+  <line x1="706" y1="860" x2="734" y2="860" stroke="#333" stroke-width="2"/>
+  <line x1="711" y1="866" x2="729" y2="866" stroke="#333" stroke-width="2"/>
+  <line x1="716" y1="872" x2="724" y2="872" stroke="#333" stroke-width="2"/>
+  <text x="690" y="858" class="s" text-anchor="end">ESP32 GND</text>
+  <!-- secondary to line -->
+  <line x1="830" y1="760" x2="1000" y2="760" class="ln"/>
+  <line x1="1000" y1="744" x2="1000" y2="776" stroke="#333" stroke-width="3"/>
+  <line x1="1010" y1="744" x2="1010" y2="776" stroke="#333" stroke-width="3"/>
+  <line x1="1010" y1="760" x2="1280" y2="760" class="ln"/>
+  <text x="1005" y="720" class="s" text-anchor="middle">1 µF, 50 V+ (film or X7R)</text>
+  <text x="1005" y="735" class="s" text-anchor="middle">until WIMA: 7× 0.15 µF film in parallel</text>
+  <line x1="830" y1="840" x2="1330" y2="840" class="ln"/>
+  <circle cx="1280" cy="760" r="4" class="dot"/><circle cx="1330" cy="840" r="4" class="dot"/>
+  <text x="1150" y="752" class="s" text-anchor="middle">to tip</text>
+  <text x="1150" y="832" class="s" text-anchor="middle">to ring</text>
+
+  <!-- Legend -->
+  <g transform="translate(40,780)">
+    <text x="0" y="0" class="h">Legend</text>
+    <line x1="0" y1="20" x2="30" y2="20" class="tx"/><text x="38" y="25" class="s">TxD (to modem)</text>
+    <line x1="160" y1="20" x2="190" y2="20" class="rx"/><text x="198" y="25" class="s">RxD (from modem)</text>
+    <line x1="0" y1="42" x2="30" y2="42" class="dtr"/><text x="38" y="47" class="s">DTR</text>
+    <line x1="160" y1="42" x2="190" y2="42" class="dcd"/><text x="198" y="47" class="s">DCD</text>
+    <line x1="0" y1="64" x2="30" y2="64" class="gnd"/><text x="38" y="69" class="s">signal GND</text>
+    <line x1="160" y1="64" x2="190" y2="64" class="ln"/><text x="198" y="69" class="s">phone line pair</text>
+    <line x1="0" y1="86" x2="30" y2="86" class="au"/><text x="38" y="91" class="s">audio (dial tone, clips)</text>
+    <text x="0" y="120" class="s">MAX3232 inverts: GPIO low = DTR on (off-hook allowed), GPIO high = hang up.</text>
+    <text x="0" y="136" class="s">DCD at the ESP32 is active-low (low = carrier).</text>
+  </g>
+  <!-- Power -->
+  <text x="40" y="975" class="h">Power</text>
+  <g font-size="13">
+    <rect x="40" y="995" width="150" height="56" class="box"/>
+    <text x="115" y="1019" class="t" text-anchor="middle">12 V DC barrel</text>
+    <text x="115" y="1038" class="s" text-anchor="middle">5.5/2.1, centre +</text>
+    <rect x="220" y="995" width="130" height="56" class="box"/>
+    <text x="285" y="1019" class="t" text-anchor="middle">Fuse</text>
+    <text x="285" y="1038" class="s" text-anchor="middle">5×20, T500 mA</text>
+    <rect x="380" y="995" width="130" height="56" class="box"/>
+    <text x="445" y="1019" class="t" text-anchor="middle">1N5819</text>
+    <text x="445" y="1038" class="s" text-anchor="middle">reverse polarity</text>
+    <rect x="540" y="995" width="130" height="56" class="box"/>
+    <text x="605" y="1019" class="t" text-anchor="middle">Power switch</text>
+    <text x="605" y="1038" class="s" text-anchor="middle">rocker, 15×10</text>
+    <rect x="730" y="995" width="190" height="56" class="box"/>
+    <text x="825" y="1019" class="t" text-anchor="middle">Buck 12 → 5 V</text>
+    <text x="825" y="1038" class="s" text-anchor="middle">set 5.0 V BEFORE connecting</text>
+    <rect x="950" y="995" width="230" height="56" class="box"/>
+    <text x="1065" y="1019" class="t" text-anchor="middle">DevKit 5V pin</text>
+    <text x="1065" y="1038" class="s" text-anchor="middle">onboard reg → 3V3 → both carriers</text>
+  </g>
+  <line x1="190" y1="1023" x2="218" y2="1023" stroke="#c0392b" stroke-width="2.5" marker-end="url(#ar)"/>
+  <line x1="350" y1="1023" x2="378" y2="1023" stroke="#c0392b" stroke-width="2.5" marker-end="url(#ar)"/>
+  <line x1="510" y1="1023" x2="538" y2="1023" stroke="#c0392b" stroke-width="2.5" marker-end="url(#ar)"/>
+  <line x1="670" y1="1023" x2="728" y2="1023" stroke="#c0392b" stroke-width="2.5" marker-end="url(#ar)"/>
+  <line x1="920" y1="1023" x2="948" y2="1023" stroke="#c0392b" stroke-width="2.5" marker-end="url(#ar)"/>
+  <circle cx="700" cy="1023" r="4" class="dot"/>
+  <polyline points="700,1023 700,1075 1220,1075" stroke="#c0392b" stroke-width="2.5" fill="none" marker-end="url(#ar)"/>
+  <text x="710" y="1068" class="s">+12 V rail</text>
+  <text x="1230" y="1079" class="s">to loop feed + (470 Ω), above</text>
+  <text x="1195" y="1019" class="s">GND common: adapter −, buck −,</text>
+  <text x="1195" y="1035" class="s">ESP32 GND, loop feed −</text>
+</svg>

@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1460" height="800" viewBox="0 0 1460 800" font-family="DejaVu Sans, Arial, sans-serif" font-size="14">
+  <defs>
+    <style>
+      .panel{fill:#eef1f4;stroke:#333;stroke-width:2}
+      .cut{fill:#2b2f36;stroke:#111;stroke-width:1}
+      .t{fill:#111}
+      .s{fill:#555;font-size:12px}
+      .h{font-weight:bold;font-size:16px}
+      .dim{stroke:#888;stroke-width:1}
+      .part{fill:#dfe9f7;stroke:#1f6fd1;stroke-width:1.5}
+      .pwr{fill:#fbe3df;stroke:#c0392b;stroke-width:1.5}
+      .pcb{fill:#e3f3e7;stroke:#1b9e4b;stroke-width:1.5}
+      .boss{fill:#ccc;stroke:#888;stroke-width:1}
+    </style>
+  </defs>
+  <rect width="1460" height="800" fill="#ffffff"/>
+  <text x="40" y="45" class="t" font-size="24" font-weight="bold">modem.doorbell: case draft</text>
+  <text x="40" y="72" class="s">Draft 2026-11-05. Box ~160 × 100 × 50 mm external, ABS or 3D printed (not metal: ESP32 PCB antenna). Scale 4 px = 1 mm. Positions in mm from the left edge as drawn. Check every cutout against the actual part.</text>
+
+  <!-- FRONT PANEL -->
+  <text x="60" y="125" class="h">Front panel (seen from outside)</text>
+  <rect x="60" y="140" width="640" height="200" class="panel"/>
+  <!-- rocker 19x13 at x=18 -->
+  <rect x="102" y="214" width="76" height="52" class="cut" rx="3"/>
+  <text x="140" y="195" class="t" text-anchor="middle">POWER</text>
+  <!-- LED Ø8 at x=38 -->
+  <circle cx="212" cy="240" r="16" class="cut"/>
+  <text x="212" y="195" class="t" text-anchor="middle">STATUS</text>
+  <!-- RING button Ø12 at x=55 -->
+  <circle cx="280" cy="240" r="24" class="cut"/>
+  <text x="280" y="195" class="t" text-anchor="middle">RING</text>
+  <!-- RJ11 15x20 at x=85 and 105 -->
+  <rect x="370" y="200" width="60" height="80" class="cut" rx="2"/>
+  <rect x="450" y="200" width="60" height="80" class="cut" rx="2"/>
+  <text x="400" y="190" class="t" text-anchor="middle">LINE D</text>
+  <text x="480" y="190" class="t" text-anchor="middle">LINE A</text>
+  <!-- USB slot 12x7 at x=136 -->
+  <rect x="580" y="226" width="48" height="28" class="cut" rx="8"/>
+  <text x="604" y="195" class="t" text-anchor="middle">USB</text>
+  <!-- dims -->
+  <g class="dim">
+    <line x1="140" y1="344" x2="140" y2="356"/><line x1="212" y1="344" x2="212" y2="356"/>
+    <line x1="280" y1="344" x2="280" y2="356"/><line x1="400" y1="344" x2="400" y2="356"/>
+    <line x1="480" y1="344" x2="480" y2="356"/><line x1="604" y1="344" x2="604" y2="356"/>
+    <line x1="710" y1="140" x2="710" y2="340"/>
+  </g>
+  <g class="s" text-anchor="middle">
+    <text x="140" y="370">20</text><text x="212" y="370">38</text><text x="280" y="370">55</text>
+    <text x="400" y="370">85</text><text x="480" y="370">105</text><text x="604" y="370">136</text>
+    <text x="380" y="392">160 mm wide, all cutouts centred at half height</text>
+  </g>
+  <text x="716" y="244" class="s">50</text>
+
+  <!-- REAR PANEL -->
+  <text x="60" y="455" class="h">Rear panel (seen from outside, mirrored vs. top view)</text>
+  <rect x="60" y="470" width="640" height="200" class="panel"/>
+  <!-- barrel Ø8 at 15 -->
+  <circle cx="120" cy="570" r="16" class="cut"/>
+  <text x="120" y="530" class="t" text-anchor="middle">12 V</text>
+  <text x="120" y="625" class="s" text-anchor="middle">centre +</text>
+  <!-- fuse Ø12.5 at 32 -->
+  <circle cx="188" cy="570" r="25" class="cut"/>
+  <text x="188" y="530" class="t" text-anchor="middle">FUSE</text>
+  <text x="188" y="625" class="s" text-anchor="middle">T500 mA</text>
+  <!-- DB9 answerer at 70 -->
+  <polygon points="300,548 380,548 373,592 307,592" class="cut"/>
+  <circle cx="290" cy="570" r="6.4" class="cut"/><circle cx="390" cy="570" r="6.4" class="cut"/>
+  <text x="340" y="530" class="t" text-anchor="middle">ANSWERER</text>
+  <text x="340" y="625" class="s" text-anchor="middle">DB9 male</text>
+  <!-- DB9 dialer at 115 -->
+  <polygon points="480,548 560,548 553,592 487,592" class="cut"/>
+  <circle cx="470" cy="570" r="6.4" class="cut"/><circle cx="570" cy="570" r="6.4" class="cut"/>
+  <text x="520" y="530" class="t" text-anchor="middle">DIALER</text>
+  <text x="520" y="625" class="s" text-anchor="middle">DB9 male</text>
+  <g class="dim">
+    <line x1="120" y1="674" x2="120" y2="686"/><line x1="188" y1="674" x2="188" y2="686"/>
+    <line x1="340" y1="674" x2="340" y2="686"/><line x1="520" y1="674" x2="520" y2="686"/>
+  </g>
+  <g class="s" text-anchor="middle">
+    <text x="120" y="700">15</text><text x="188" y="700">32</text><text x="340" y="700">70</text><text x="520" y="700">115</text>
+  </g>
+  <text x="60" y="728" class="s">DB9 cutout ≈ 20 × 11 mm D-shape (wide side up), mounting holes Ø3.2 at 25 mm spacing.</text>
+  <text x="60" y="745" class="s">Barrel jack Ø8 (some types Ø11), fuse holder Ø12.5, rocker 19 × 13, RJ11 keystone ≈ 15 × 20, LED holder Ø6–8: per part.</text>
+  <text x="60" y="762" class="s">Box acts like a PC (DTE): use standard DB9F → DB25M modem cables to the Couriers.</text>
+
+  <!-- TOP VIEW -->
+  <text x="780" y="125" class="h">Top view, lid off (rear at top)</text>
+  <rect x="780" y="140" width="640" height="400" class="panel"/>
+  <text x="1050" y="158" class="s" text-anchor="middle">REAR</text>
+  <text x="1100" y="556" class="s" text-anchor="middle">FRONT</text>
+  <circle cx="800" cy="160" r="14" class="boss"/><circle cx="1400" cy="160" r="14" class="boss"/>
+  <circle cx="800" cy="520" r="14" class="boss"/><circle cx="1400" cy="520" r="14" class="boss"/>
+  <!-- rear parts -->
+  <rect x="920" y="140" width="80" height="60" class="part"/><text x="960" y="186" class="s" text-anchor="middle">DB9 D</text>
+  <rect x="1100" y="140" width="80" height="60" class="part"/><text x="1140" y="186" class="s" text-anchor="middle">DB9 A</text>
+  <rect x="1266" y="140" width="52" height="140" class="pwr"/><text x="1292" y="230" class="s" text-anchor="middle">fuse</text>
+  <rect x="1344" y="140" width="32" height="60" class="pwr"/><text x="1360" y="216" class="s" text-anchor="middle">12V</text>
+  <!-- inside -->
+  <rect x="880" y="240" width="268" height="180" class="pcb" rx="4"/>
+  <text x="1014" y="300" class="t" text-anchor="middle">perfboard</text>
+  <text x="1014" y="322" class="s" text-anchor="middle">MAX3232 ×2, SM-LP-5001,</text>
+  <text x="1014" y="338" class="s" text-anchor="middle">470 Ω loop feed, caps,</text>
+  <text x="1014" y="354" class="s" text-anchor="middle">RJ11 + DB9 wiring</text>
+  <rect x="1172" y="240" width="80" height="80" class="pwr"/><text x="1212" y="276" class="s" text-anchor="middle">buck</text><text x="1212" y="292" class="s" text-anchor="middle">12→5 V</text>
+  <rect x="1268" y="308" width="112" height="212" class="pcb" rx="3"/>
+  <rect x="1278" y="312" width="92" height="30" fill="#fff" stroke="#1b9e4b" stroke-dasharray="4 3"/>
+  <text x="1324" y="331" class="s" text-anchor="middle">antenna</text>
+  <text x="1324" y="400" class="t" text-anchor="middle">ESP32</text>
+  <text x="1324" y="418" class="s" text-anchor="middle">DevKit</text>
+  <text x="1324" y="508" class="s" text-anchor="middle">USB ↓</text>
+  <!-- front parts -->
+  <rect x="822" y="460" width="76" height="80" class="pwr"/><text x="860" y="505" class="s" text-anchor="middle">switch</text>
+  <rect x="924" y="500" width="16" height="40" class="part"/>
+  <rect x="976" y="460" width="48" height="80" class="part"/><text x="1000" y="505" class="s" text-anchor="middle">RING</text>
+  <rect x="1090" y="440" width="60" height="100" class="part"/><text x="1120" y="495" class="s" text-anchor="middle">RJ11 D</text>
+  <rect x="1170" y="440" width="60" height="100" class="part"/><text x="1200" y="495" class="s" text-anchor="middle">RJ11 A</text>
+  <text x="780" y="580" class="s">Grey circles: typical corner screw bosses, keep ~10 mm clear in the corners.</text>
+  <text x="780" y="597" class="s">ESP32 antenna end faces into the box, away from the DB9 shells and wiring.</text>
+  <text x="780" y="614" class="s">Nothing runs hot: no vents needed. Use stand-offs or hot glue for the boards.</text>
+</svg>
