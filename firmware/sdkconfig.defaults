@@ -11,3 +11,8 @@ CONFIG_BT_BLE_42_FEATURES_SUPPORTED=y
 # Bluedroid is large: 1.5 MB app partition; the rest is the sound bank (partitions.csv).
 CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# Hardening (2026-11-15 shakedown): a hung task reboots the box instead of leaving it deaf; cheap memory checks.
+CONFIG_ESP_TASK_WDT_PANIC=y
+CONFIG_COMPILER_STACK_CHECK_MODE_NORM=y
+CONFIG_HEAP_POISONING_LIGHT=y

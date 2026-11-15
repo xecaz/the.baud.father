@@ -13,6 +13,7 @@
 #include "trigger.h"
 
 #include "esp_log.h"
+#include "esp_system.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -459,7 +460,12 @@ void app_main(void)
         trigger_src_t src;
         bool got = trigger_wait(&src, pdMS_TO_TICKS(250));
 
-        /* Housekeeping: expire the pairing window and the cooldown. */
+        /* Housekeeping: Bluetooth health, expire the pairing window and the cooldown. */
+        if (ble_is_stuck()) {
+            ESP_LOGE(TAG, "Bluetooth is stuck: restarting");
+            vTaskDelay(pdMS_TO_TICKS(200));
+            esp_restart();
+        }
         if (pairing && !ble_pairing_is_open()) {
             pairing = false;
             ble_pairing_close();

@@ -9,9 +9,12 @@
  *   Status   2139d583-...  read + notify (encrypted). 1 byte, ble_status_t.
  *   Advertised name "doorbell"; the service UUID is in the advertising data.
  *
+ * Queued ("prepare") writes are refused; trigger writes closer together than 250 ms are dropped; a link that is
+ * not encrypted 8 s after connecting is disconnected (not while pairing).
+ *
  * Only bonded devices can use it: both characteristics need an encrypted link, and new
  * pairings (Just Works, LE Secure Connections) are accepted only while the pairing
- * window is open (long-press RING or BOOT). */
+ * window is open (long-press RING or BOOT). The window closes after the first new pairing. */
 #include <stdbool.h>
 #include <stdint.h>
 #include "esp_err.h"
@@ -33,3 +36,5 @@ void ble_pairing_open(int seconds);
 void ble_pairing_close(void);
 bool ble_pairing_is_open(void);
 void ble_forget_all(void);
+/* True when the Bluetooth stack has stopped answering its periodic health check: the caller should restart. */
+bool ble_is_stuck(void);

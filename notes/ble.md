@@ -12,7 +12,7 @@ Source of truth for the firmware (`firmware/main/ble.c`, `ble.h`) and the app (`
 
 | Characteristic | UUID | Properties | Value |
 |---|---|---|---|
-| Trigger | `2139d582-b04a-4808-8e1f-f08bb13d8de6` | write (encrypted link) | `0x01` ring, `0x02` identify (blink the LED 3×, no call, no rate limit), `0x03` ring for an internet call (WhatsApp etc.: the box plays the `v90` clip as the handshake, dialer only; a normal call if the clip is missing). `0x10 + n` (up to `0x2f`): ringtone n from the box's table (`RINGTONES` in config.h; 2026-11-14, run from the console with `:ring n`, not yet from the app): 0 call, 1 56k clip, 2 "whatsapp" spoken, 3 "signal" spoken, 4 failed negotiation + redial, 5 "email" spoken; since the same day `0x01` rings ringtone 4 and `0x03` ringtone 0; an unknown n rings like `0x01`. Spoken ringtones use a short rate limit (8 s). Other values are ignored. |
+| Trigger | `2139d582-b04a-4808-8e1f-f08bb13d8de6` | write (encrypted link) | `0x01` ring, `0x02` identify (blink the LED 3×, no call, no rate limit), `0x03` ring for an internet call (WhatsApp etc.: the box plays the `v90` clip as the handshake, dialer only; a normal call if the clip is missing). `0x10 + n` (up to `0x2f`): ringtone n from the box's table (`RINGTONES` in config.h; 2026-11-14, run from the console with `:ring n`, not yet from the app): 0 call, 1 56k clip, 2 "whatsapp" spoken, 3 "signal" spoken, 4 failed negotiation + redial, 5 "email" spoken, 6 demo, 7 "food update" spoken; since the same day `0x01` rings ringtone 4 and `0x03` ringtone 0; an unknown n rings like `0x01`. Spoken ringtones use a short rate limit (8 s). Other values are ignored. |
 | Status | `2139d583-b04a-4808-8e1f-f08bb13d8de6` | read + notify (encrypted) | 1 byte: `0` idle, `1` calling, `2` cooldown (triggers ignored), `3` pairing window open |
 
 Both characteristics and the status CCCD need an **encrypted, bonded link**; the stack rejects
@@ -55,3 +55,20 @@ unencrypted access.
 ## Connections (2026-11-14)
 Up to 3 centrals at once (`BLE_MAX_LINKS`, ble.c): the box advertises again after each connect while a slot is free, and
 status notifications go to every link that enabled them. One sound at a time: triggers during a call are dropped.
+
+## Hardening (2026-11-15 shakedown)
+Tested with a raw ATT client from a bonded laptop, on unencrypted and encrypted links.
+- **Queued ("prepare") writes are refused** on the trigger and the status CCC (`request not supported`). Both are
+  answered by `ble.c` (`ESP_GATT_RSP_BY_APP`). Reason: with `ESP_GATT_AUTO_RSP`, ESP-IDF 5.5.1 Bluedroid stores each
+  prepare write in a 254-entry queue and enqueues with an infinite timeout inside its own task
+  (`gatt_attr_process_prepare_write`, `stack/gatt/gatt_sr.c`), so prepare write 255 without an execute blocks the stack
+  for ever: no advertising, no answers, no reboot. Reproduced on the box; needed an encrypted link here.
+- **Unencrypted links are dropped after 8 s** (not during the pairing window + 20 s), so idle strangers cannot hold
+  the 3 link slots.
+- **Pairing:** LE Secure Connections only, 16-byte keys only, one new device per pairing window.
+- **Trigger writes** closer together than 250 ms are dropped. Trigger length must be 1 to 4 bytes, CCC exactly 2.
+- **Health check:** every 30 s a request goes through the whole stack; two unanswered ones restart the box (between
+  calls). The task watchdog now reboots too, and stack/heap checks are on (`sdkconfig.defaults`).
+  The restart path has not been exercised by a real hang since the fix (nothing hangs it any more).
+- Not done: flash encryption / secure boot (bond keys are readable with physical access), private address.
+- Not tested: pairing refusal outside the window and legacy-pairing refusal (need a second, unbonded device).

@@ -21,6 +21,7 @@ final class Ringtones {
             "Failed negotiation, redial, connect (long)",
             "Voice: \"Incoming e-mail\"",
             "Demo: call, connect, \"Signal message\", \"WhatsApp message\"",
+            "Voice: \"Food update\"",
     };
 
     private static final String PREFS = "doorbell_sounds";

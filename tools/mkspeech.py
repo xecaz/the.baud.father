@@ -20,7 +20,7 @@ import sys
 import wave
 from pathlib import Path
 
-PHRASES = {"whatsapp": "Whats app message", "signal": "Signal message", "email": "Incoming e-mail"}
+PHRASES = {"whatsapp": "Whats app message", "signal": "Signal message", "email": "Incoming e-mail", "food": "Food update"}
 
 # name: (voice, rate wpm, pitch 0-99, pitch range 0-99 (0 = monotone), 8-bit crunch)
 STYLES = {

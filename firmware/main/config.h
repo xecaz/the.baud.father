@@ -118,6 +118,7 @@ typedef struct { const char *name; ringtone_kind_t kind; const char *clip; } rin
     { "failed call", RT_FAIL, ""       },   /* 4: failed negotiation, redial, connect */ \
     { "email",    RT_SPEAK, "email"    },   /* 5: "Incoming email" (firmware/sounds/email.wav) */ \
     { "demo",     RT_DEMO,  ""         },   /* 6: call + connect, "Signal message", "WhatsApp message" (user, 2026-11-14) */ \
+    { "food",     RT_SPEAK, "food"     },   /* 7: "Food update" (firmware/sounds/food.wav) */ \
 }
 /* What the old trigger bytes ring (app 0.4): 0x01 = a regular phone call, 0x03 = an internet call (user, 2026-11-14:
  * phone = the long failed negotiation, WhatsApp call = a real 33.6k connect). The RING/BOOT buttons stay a normal call. */
