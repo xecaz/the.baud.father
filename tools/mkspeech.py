@@ -58,17 +58,35 @@ def synth(lib, text):
     return list(struct.unpack(f"<{len(raw) // 2}h", raw))
 
 
+# Phrases that came out too quiet on the box: name -> (high-pass Hz before the clipper, drive). "Food update" is
+# mostly "oo"/"u": its energy sits below ~500 Hz, which the line transformer and the modem speaker barely pass, so it
+# was "barely hearable" (user, 2026-11-15). The high-pass moves the level to the harmonics the speaker does play.
+LOUD = {"food": (700, 10.0)}
+
 DRIVE = 4.0   # loudness: soft-clip gain before the 8-bit step (1 = none). 4 is roughly +9 dB louder at the same peak.
 
 
-def crunch(x):
+def highpass(x, hz, rate):
+    """First-order high-pass, applied twice (12 dB/octave)."""
+    a = 1 / (1 + 2 * math.pi * hz / rate)
+    for _ in range(2):
+        y, px, py = [], 0.0, 0.0
+        for v in x:
+            py = a * (py + v - px)
+            px = v
+            y.append(py)
+        x = y
+    return x
+
+
+def crunch(x, drive=DRIVE):
     """Normalize, push into a soft clipper (louder at the same peak: the DAC is already at full scale), then
     8-bit quantize like the Amiga's DAC."""
     peak = max(1, max(abs(v) for v in x))
-    norm = math.tanh(DRIVE)
+    norm = math.tanh(drive)
     out = []
     for v in x:
-        q = round(math.tanh(v / peak * DRIVE) / norm * 120)   # -120..120
+        q = round(math.tanh(v / peak * drive) / norm * 120)   # -120..120
         out.append(int(q * 32767 / 127))
     return out
 
@@ -113,8 +131,11 @@ def main():
         x = synth(lib, text)
         if not x:
             sys.exit(f"no audio for {text!r}")
+        hp, drive = LOUD.get(name, (0, DRIVE))
+        if hp:
+            x = highpass(x, hp, rate)
         if do_crunch:
-            x = crunch(x)
+            x = crunch(x, drive)
         x = pad + x + pad
         path = out / f"{name}{a.suffix}.wav"
         with wave.open(str(path), "wb") as w:
