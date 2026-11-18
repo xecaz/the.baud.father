@@ -60,13 +60,13 @@ static esp_gatt_if_t s_gatts_if = ESP_GATT_IF_NONE;
 /* Up to BLE_MAX_LINKS centrals at once (phone app open + the laptop's mail watcher + one more). The controller is built
  * for 3 (CONFIG_BTDM_CTRL_BLE_MAX_CONN). Advertising restarts after each connect while a slot is free. */
 #define BLE_MAX_LINKS 3
-static struct { bool used; uint16_t conn_id; bool notify; bool enc; esp_bd_addr_t bda; int64_t since_us; } s_links[BLE_MAX_LINKS];
+static struct { bool used; uint16_t conn_id; bool notify; bool enc; esp_bd_addr_t bda; int64_t since_us; int64_t trig_us; } s_links[BLE_MAX_LINKS];
 
 /* A link that is not encrypted this long after connecting is dropped: a stranger cannot use the box anyway, and
  * three idle strangers would otherwise hold every slot. Bonded phones/laptops encrypt within ~0.5 s. */
 #define UNENC_LINK_MS      8000
 #define PAIR_GRACE_MS     20000    /* ...except while pairing: window + this long to finish (confirm on the phone) */
-#define TRIG_MIN_GAP_MS     250    /* accepted trigger writes are at least this far apart (floods are dropped) */
+#define TRIG_MIN_GAP_MS     250    /* accepted trigger writes of one link are at least this far apart (floods are dropped) */
 #define PING_PERIOD_S        30    /* health check: a request through the whole stack; PING_MISSES unanswered = stuck */
 #define PING_MISSES           2
 
@@ -276,6 +276,7 @@ static void gatts_cb(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble
                 s_links[i].notify = false;
                 s_links[i].enc = false;
                 s_links[i].since_us = esp_timer_get_time();
+                s_links[i].trig_us = 0;
                 memcpy(s_links[i].bda, p->connect.remote_bda, sizeof(esp_bd_addr_t));
                 s_links[i].used = true;
                 break;
@@ -331,13 +332,16 @@ static void gatts_cb(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble
             ESP_LOGI(TAG, "status notifications %s (link %d)", (p->write.value[0] & 0x01) ? "on" : "off", i);
             break;
         }
-        /* Trigger. At most one accepted write per TRIG_MIN_GAP_MS: a flood from a paired device is dropped quietly. */
+        /* Trigger. At most one accepted write per TRIG_MIN_GAP_MS and link: a flood from a paired device is dropped
+         * quietly, while two devices writing at the same moment both get through (main.c queues them). */
         const int64_t now = esp_timer_get_time();
-        if (now - s_last_trig_us < TRIG_MIN_GAP_MS * 1000LL) {
+        const int li = link_find(p->write.conn_id);
+        int64_t *last = li >= 0 ? &s_links[li].trig_us : &s_last_trig_us;
+        if (*last && now - *last < TRIG_MIN_GAP_MS * 1000LL) {
             s_trig_dropped++;
             break;
         }
-        s_last_trig_us = now;
+        *last = now;
         if (s_trig_dropped) {
             ESP_LOGW(TAG, "%" PRIu32 " trigger write(s) dropped (faster than one per %d ms)", s_trig_dropped, TRIG_MIN_GAP_MS);
             s_trig_dropped = 0;

@@ -16,11 +16,10 @@ typedef enum {
 void trigger_init(void);
 /* Post a trigger from task context (BLE writes). */
 void trigger_post(trigger_src_t src);
-/* Post ringtone n (task context). The id of the latest post is kept; triggers during a call are dropped anyway. */
+/* Post ringtone n (task context). Each queued trigger carries its own ringtone number. */
 void trigger_post_tone(uint8_t id);
-uint8_t trigger_tone_id(void);
-/* Block until a trigger arrives; false on timeout. */
-bool trigger_wait(trigger_src_t *src, TickType_t timeout);
-/* Drop triggers that queued up during a call. */
+/* Block until a trigger arrives; false on timeout. *tone is the ringtone number of a TRIG_BLE_TONE (else 0). */
+bool trigger_wait(trigger_src_t *src, uint8_t *tone, TickType_t timeout);
+/* Drop everything that is queued. */
 void trigger_clear(void);
 const char *trigger_name(trigger_src_t src);

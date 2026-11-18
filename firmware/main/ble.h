@@ -9,7 +9,7 @@
  *   Status   2139d583-...  read + notify (encrypted). 1 byte, ble_status_t.
  *   Advertised name "doorbell"; the service UUID is in the advertising data.
  *
- * Queued ("prepare") writes are refused; trigger writes closer together than 250 ms are dropped; a link that is
+ * Queued ("prepare") writes are refused; trigger writes of one link closer together than 250 ms are dropped; a link that is
  * not encrypted 8 s after connecting is disconnected (not while pairing).
  *
  * Only bonded devices can use it: both characteristics need an encrypted link, and new
@@ -26,7 +26,7 @@ enum { BLE_CMD_RING = 0x01, BLE_CMD_IDENTIFY = 0x02, BLE_CMD_RING_NET = 0x03,
 typedef enum {
     BLE_STATUS_IDLE = 0,
     BLE_STATUS_CALLING = 1,
-    BLE_STATUS_COOLDOWN = 2,   /* rate limit: triggers are ignored */
+    BLE_STATUS_COOLDOWN = 2,   /* a queued ring is waiting for its turn (triggers are still accepted) */
     BLE_STATUS_PAIRING = 3,    /* pairing window open */
 } ble_status_t;
 

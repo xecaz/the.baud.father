@@ -106,10 +106,23 @@ static bool modem_ready(modem_t *m, const char *init)
     return modem_cmd(m, init, T_AT_TIMEOUT) == MR_OK;
 }
 
+/* Both modems, the same steps as modem_ready() but side by side: one set of settle times instead of two
+ * (about 2.1 s instead of 4.4 s after every call). */
 static void ready_modems(void)
 {
-    s_ready[0] = modem_ready(&s_dialer, AT_DIAL_INIT);
-    s_ready[1] = modem_ready(&s_answerer, AT_ANS_INIT);
+    static const char *const init[2] = { AT_DIAL_INIT, AT_ANS_INIT };
+    for (size_t i = 0; i < 2; i++) modem_dtr(s_both[i], true);
+    delay_ms(100);
+    for (size_t i = 0; i < 2; i++) { modem_flush(s_both[i]); modem_send(s_both[i], AT_UNBLOCK); }
+    delay_ms(T_UNBLOCK_SETTLE);
+    for (size_t i = 0; i < 2; i++) { modem_flush(s_both[i]); modem_send(s_both[i], "ATH0"); }
+    delay_ms(T_UNBLOCK_SETTLE);
+    for (size_t i = 0; i < 2; i++) modem_send(s_both[i], "ATZ");
+    delay_ms(T_ATZ_SETTLE);
+    for (size_t i = 0; i < 2; i++) modem_send(s_both[i], AT_UNBLOCK);
+    delay_ms(T_UNBLOCK_SETTLE);
+    for (size_t i = 0; i < 2; i++) modem_flush(s_both[i]);
+    for (size_t i = 0; i < 2; i++) s_ready[i] = modem_cmd(s_both[i], init[i], T_AT_TIMEOUT) == MR_OK;
     ESP_LOGI(TAG, "modems: dialer %s, answerer %s", s_ready[0] ? "ready" : "not responding",
              s_ready[1] ? "ready" : "not responding (dialer-only calls)");
 }
@@ -163,6 +176,95 @@ static void ringback(void)
     delay_ms(T_RINGBACK_LEN);
     audio_stop();
 }
+
+static const ringtone_t s_ringtones[] = RINGTONES;
+#define N_RINGTONES ((int)(sizeof s_ringtones / sizeof s_ringtones[0]))
+
+static bool ringtone_is_short(int id)
+{
+    return id >= 0 && id < N_RINGTONES && s_ringtones[id].kind == RT_SPEAK;
+}
+
+/* ---------------- Pending rings ----------------
+ * Triggers wait here until the box can play them (config.h "Triggers"). Only the main task touches the list.
+ * Two kinds: spoken ringtones ("messages": short, several fit in one off-hook) and everything else ("calls"). */
+typedef struct { trigger_src_t src; uint8_t tone; int64_t at; } pend_t;
+static pend_t s_pend[PEND_MAX];
+static int s_pend_n;
+static int64_t s_spoken_at[N_RINGTONES];   /* last start of each spoken ringtone (0 = never) */
+static int64_t s_call_not_before;          /* earliest start of the next call */
+
+static bool pend_is_spoken(const pend_t *p) { return p->src == TRIG_BLE_TONE && ringtone_is_short(p->tone); }
+
+static void pend_remove(int i)
+{
+    memmove(&s_pend[i], &s_pend[i + 1], (size_t)(s_pend_n - i - 1) * sizeof s_pend[0]);
+    s_pend_n--;
+}
+
+/* First waiting message (spoken = true) or call (false); -1 if none. */
+static int pend_find(bool spoken)
+{
+    for (int i = 0; i < s_pend_n; i++) if (pend_is_spoken(&s_pend[i]) == spoken) return i;
+    return -1;
+}
+
+static void pend_add(trigger_src_t src, uint8_t tone)
+{
+    if (src == TRIG_BLE)     { src = TRIG_BLE_TONE; tone = RINGTONE_BLE_CALL; }   /* 0x01: a regular phone call */
+    if (src == TRIG_BLE_NET) { src = TRIG_BLE_TONE; tone = RINGTONE_BLE_NET; }    /* 0x03: an internet call */
+    const pend_t p = { .src = src, .tone = tone, .at = now_ms() };
+    char what[24];
+    if (src == TRIG_BLE_TONE) snprintf(what, sizeof what, "ringtone %d", tone);
+    else snprintf(what, sizeof what, "%s", trigger_name(src));
+
+    if (pend_is_spoken(&p)) {
+        for (int i = 0; i < s_pend_n; i++) {
+            if (pend_is_spoken(&s_pend[i]) && s_pend[i].tone == tone) {
+                ESP_LOGI(TAG, "trigger: %s ignored (already waiting)", what);
+                return;
+            }
+        }
+        if (s_spoken_at[tone] && p.at - s_spoken_at[tone] < TRIGGER_SPEAK_REPEAT_MS) {
+            ESP_LOGI(TAG, "trigger: %s ignored (said %lld s ago)", what, (p.at - s_spoken_at[tone]) / 1000);
+            return;
+        }
+    } else if (pend_find(false) >= 0) {
+        ESP_LOGI(TAG, "trigger: %s ignored (a call is already waiting)", what);
+        return;
+    }
+    if (s_pend_n >= PEND_MAX) {
+        ESP_LOGW(TAG, "trigger: %s ignored (%d rings waiting)", what, s_pend_n);
+        return;
+    }
+    s_pend[s_pend_n++] = p;
+    ESP_LOGI(TAG, "trigger: %s (%d waiting)", what, s_pend_n);
+}
+
+static void pend_expire(void)
+{
+    const int64_t now = now_ms();
+    for (int i = s_pend_n - 1; i >= 0; i--) {
+        if (now - s_pend[i].at <= PEND_MAX_AGE_MS) continue;
+        ESP_LOGW(TAG, "a waiting ring (%s %d) is %lld s old: dropped", trigger_name(s_pend[i].src), s_pend[i].tone,
+                 (now - s_pend[i].at) / 1000);
+        pend_remove(i);
+    }
+}
+
+/* Move what arrived during a ring from the trigger queue to the list. Buttons and identify are not kept: a press
+ * during a ring does not queue a second one. */
+static void collect_triggers(void)
+{
+    trigger_src_t src;
+    uint8_t tone;
+    while (trigger_wait(&src, &tone, 0)) {
+        if (src == TRIG_BLE || src == TRIG_BLE_NET || src == TRIG_BLE_TONE) pend_add(src, tone);
+        else ESP_LOGI(TAG, "%s ignored (busy)", trigger_name(src));
+    }
+}
+
+static void speak_pending(bool after_call);
 
 /* > 0: the next call is a failed negotiation. A tone on the line keeps the modems from agreeing (they keep trying,
  * measured 2026-11-14: 30 s of 1750 Hz, no connect; 33.6k within 6 s once it stopped); after this long, hang up. */
@@ -248,12 +350,13 @@ static void run_call(trigger_src_t src)
 out:
     audio_stop();      /* in case we jumped here mid-tone */
     modem_hangup_all(s_both, 2);
-    if (!s_quick_end) ready_modems();    /* back to idle: DTR on, configured; also picks up a modem connected since */
+    if (!s_quick_end) {
+        collect_triggers();
+        speak_pending(true);             /* messages that came in during the call: said now, before the reset */
+        ready_modems();                  /* back to idle: DTR on, configured; also picks up a modem connected since */
+    }
     led(false);
 }
-
-static const ringtone_t s_ringtones[] = RINGTONES;
-#define N_RINGTONES ((int)(sizeof s_ringtones / sizeof s_ringtones[0]))
 
 /* Spoken clips: the dialer lifts the line with the speaker on (speak_open), clips play (speak_clip), it hangs up
  * (speak_close). Dialer only, no dialing. Without a dialer the clips still play on the DAC. */
@@ -303,6 +406,39 @@ static void run_speak(const ringtone_t *rt)
     speak_close();
 }
 
+/* Right after a DTR hang-up: DTR back on (the Courier ignores AT without it), then the rest of T_DEMO_PAUSE
+ * (off-hook and T_SPEAK_LEAD follow in speak_open). */
+static void speak_after_hangup(void)
+{
+    modem_dtr(&s_dialer, true);
+    modem_flush(&s_dialer);
+    delay_ms(T_DEMO_PAUSE > T_SPEAK_LEAD + 300 ? T_DEMO_PAUSE - T_SPEAK_LEAD - 300 : 0);
+}
+
+/* Say every waiting message in one off-hook, including the ones that arrive meanwhile. after_call: called from
+ * run_call() between the hang-up and the modem reset. Otherwise (idle) a call that becomes due ends the round:
+ * calls go first, the rest is said after its hang-up. */
+static void speak_pending(bool after_call)
+{
+    pend_expire();
+    if (pend_find(true) < 0) return;
+    if (after_call) speak_after_hangup();
+    speak_open();
+    for (int n = 0, i; (i = pend_find(true)) >= 0; n++) {
+        const int id = s_pend[i].tone;
+        pend_remove(i);
+        if (n) delay_ms(T_SPEAK_GAP);
+        ESP_LOGI(TAG, "ringtone %d \"%s\"%s", id, s_ringtones[id].name, after_call ? " (after the call)" : "");
+        s_spoken_at[id] = now_ms();
+        speak_clip(s_ringtones[id].clip);
+        collect_triggers();
+        pend_expire();
+        if (!after_call && pend_find(false) >= 0 && now_ms() + T_SPEAK_TO_CALL >= s_call_not_before) break;
+    }
+    speak_close();
+    if (s_call_not_before < now_ms() + T_SPEAK_TO_CALL) s_call_not_before = now_ms() + T_SPEAK_TO_CALL;
+}
+
 /* Ringtone n from the table. Unknown numbers ring like a normal BLE call. */
 static void run_ringtone(int id)
 {
@@ -320,9 +456,7 @@ static void run_ringtone(int id)
         s_quick_end = true;
         run_call(TRIG_BLE);
         s_quick_end = false;
-        modem_dtr(&s_dialer, true);                 /* the hang-up leaves DTR off, and the Courier ignores AT then */
-        modem_flush(&s_dialer);
-        delay_ms(T_DEMO_PAUSE > T_SPEAK_LEAD + 300 ? T_DEMO_PAUSE - T_SPEAK_LEAD - 300 : 0);   /* off-hook + lead follow */
+        speak_after_hangup();
         speak_open();                               /* one off-hook for all the clips: the pauses stay exact */
         for (size_t i = 0; i < sizeof say; i++) {
             if (i) delay_ms(T_DEMO_PAUSE);
@@ -344,11 +478,6 @@ static void run_ringtone(int id)
     case RT_CLIP:  run_call(TRIG_BLE_NET); break;   /* clip = SOUND_NET_HANDSHAKE for now */
     default:       run_call(TRIG_BLE); break;
     }
-}
-
-static bool ringtone_is_short(int id)
-{
-    return id >= 0 && id < N_RINGTONES && s_ringtones[id].kind == RT_SPEAK;
 }
 
 #if MODEM_HAS_CTRL_LINES
@@ -454,13 +583,14 @@ void app_main(void)
     ESP_LOGI(TAG, "ready: short press RING/BOOT = call, hold %d s = pairing, hold %d s = forget bonds",
              PAIRING_HOLD_MS / 1000, FORGET_HOLD_MS / 1000);
 
-    int64_t cooldown_until = 0;
+    bool waiting = false;   /* Status shows "a ring is waiting" */
     bool pairing = false;
     for (;;) {
         trigger_src_t src;
-        bool got = trigger_wait(&src, pdMS_TO_TICKS(250));
+        uint8_t tone = 0;
+        bool got = trigger_wait(&src, &tone, pdMS_TO_TICKS(s_pend_n ? 50 : 250));
 
-        /* Housekeeping: Bluetooth health, expire the pairing window and the cooldown. */
+        /* Housekeeping: Bluetooth health, expire the pairing window. */
         if (ble_is_stuck()) {
             ESP_LOGE(TAG, "Bluetooth is stuck: restarting");
             vTaskDelay(pdMS_TO_TICKS(200));
@@ -470,65 +600,70 @@ void app_main(void)
             pairing = false;
             ble_pairing_close();
             led_blink(false);
-            ble_set_status(now_ms() < cooldown_until ? BLE_STATUS_COOLDOWN : BLE_STATUS_IDLE);
+            ble_set_status(waiting ? BLE_STATUS_COOLDOWN : BLE_STATUS_IDLE);
         }
-        if (cooldown_until && now_ms() >= cooldown_until) {
-            cooldown_until = 0;
-            if (!pairing) ble_set_status(BLE_STATUS_IDLE);
-        }
-        if (!got) continue;
 
-        if (src == TRIG_BLE_IDENTIFY) {
+        if (got && src == TRIG_BLE_IDENTIFY) {
             if (!pairing) led_identify();
-            continue;
+            got = false;
         }
-
-        if (src == TRIG_RING_BUTTON || src == TRIG_BOOT_BUTTON) {
+        if (got && (src == TRIG_RING_BUTTON || src == TRIG_BOOT_BUTTON)) {
             press_t p = measure_press(src == TRIG_RING_BUTTON ? PIN_RING_BTN : PIN_BOOT_BTN);
-            if (p == PRESS_NOISE) continue;
             if (p == PRESS_FORGET) {
                 ble_forget_all();
                 ble_pairing_close();
                 pairing = false;
                 delay_ms(1000);
                 led(false);
-                ble_set_status(cooldown_until ? BLE_STATUS_COOLDOWN : BLE_STATUS_IDLE);
                 trigger_clear();
-                continue;
-            }
-            if (p == PRESS_PAIR) {
+                s_pend_n = 0;
+                waiting = false;
+                ble_set_status(BLE_STATUS_IDLE);
+            } else if (p == PRESS_PAIR) {
                 ble_pairing_open(PAIRING_WINDOW_S);
                 pairing = true;
                 ble_set_status(BLE_STATUS_PAIRING);
                 trigger_clear();
-                continue;
             }
+            if (p != PRESS_SHORT) got = false;
         }
+        if (got) pend_add(src, tone);
 
-        if (cooldown_until) {
-            ESP_LOGW(TAG, "%s ignored (rate limit, %lld s left)", trigger_name(src),
-                     (cooldown_until - now_ms()) / 1000);
+        /* What to play now: a call that is due goes first, else the waiting messages. A call inside the gap
+         * after the previous one waits (Status "cooldown"). */
+        pend_expire();
+        const int call = pend_find(false);
+        const bool call_due = call >= 0 && now_ms() >= s_call_not_before;
+        if (!call_due && pend_find(true) < 0) {
+            if (waiting != (s_pend_n > 0)) {
+                waiting = s_pend_n > 0;
+                if (!pairing) ble_set_status(waiting ? BLE_STATUS_COOLDOWN : BLE_STATUS_IDLE);
+            }
             continue;
         }
         if (!console_take_modems()) {
-            ESP_LOGW(TAG, "%s ignored: the AT console has a modem selected (type :off)", trigger_name(src));
+            ESP_LOGW(TAG, "%d ring(s) ignored: the AT console has a modem selected (type :off)", s_pend_n);
+            s_pend_n = 0;
             continue;
         }
-        const int tone = src == TRIG_BLE_TONE ? trigger_tone_id() : -1;
-        cooldown_until = now_ms() + (ringtone_is_short(tone) ? TRIGGER_RATE_LIMIT_SPEAK_MS : TRIGGER_RATE_LIMIT_MS);
-        if (pairing) {   /* a call ends the pairing window */
+        if (pairing) {   /* a ring ends the pairing window */
             pairing = false;
             ble_pairing_close();
             led_blink(false);
         }
-        ESP_LOGI(TAG, "trigger: %s", trigger_name(src));
         ble_set_status(BLE_STATUS_CALLING);
-        if (src == TRIG_BLE_TONE) run_ringtone(tone);
-        else if (src == TRIG_BLE) run_ringtone(RINGTONE_BLE_CALL);       /* 0x01: a regular phone call */
-        else if (src == TRIG_BLE_NET) run_ringtone(RINGTONE_BLE_NET);    /* 0x03: an internet call */
-        else run_call(src);
+        if (call_due) {
+            const pend_t p = s_pend[call];
+            pend_remove(call);
+            if (p.src == TRIG_BLE_TONE) run_ringtone(p.tone);
+            else run_call(p.src);
+            s_call_not_before = now_ms() + TRIGGER_CALL_GAP_MS;
+        } else {
+            speak_pending(false);
+        }
         console_give_modems();
-        ble_set_status(BLE_STATUS_COOLDOWN);
-        trigger_clear();   /* presses during the call don't queue a second one */
+        collect_triggers();   /* arrived during the last steps: next round */
+        waiting = s_pend_n > 0;
+        ble_set_status(waiting ? BLE_STATUS_COOLDOWN : BLE_STATUS_IDLE);
     }
 }

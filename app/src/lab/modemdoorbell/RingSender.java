@@ -48,10 +48,10 @@ final class RingSender {
         send(ctx, reason, cmd, true, done);
     }
 
-    static final long MESSAGE_GAP_MS = 10000;   // a message sound waits this long after any ring (the box takes ~8 s)
+    static final long MESSAGE_GAP_MS = 1000;   // message sounds at least this far apart (the box queues them; it drops writes of one link < 250 ms apart)
     private static long lastAnyMs;
 
-    /** call = a call ring (deduped against other call rings only); otherwise a message sound (dropped if anything rang just now). */
+    /** call = a call ring (deduped against other call rings only); otherwise a message sound (dropped only if something was sent within the last second: the box queues the rest). */
     static void send(Context ctx, String reason, byte cmd, boolean call, Runnable done) {
         Context app = ctx.getApplicationContext();
         if (app.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {

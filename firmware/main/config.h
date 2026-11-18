@@ -98,8 +98,15 @@
 
 /* ---- Triggers ---- */
 #define TRIGGER_DEBOUNCE_MS    50
-#define TRIGGER_RATE_LIMIT_MS 30000   /* ignore triggers this long after a call starts */
-#define TRIGGER_RATE_LIMIT_SPEAK_MS 8000   /* same, after a spoken ringtone starts (short: off-hook, clip, hang up) */
+/* Triggers that arrive while the box is busy wait in a short list (main.c "Pending rings") instead of being dropped:
+ * spoken ringtones are said one after the other in one off-hook, also right after a call's hang-up; a call goes
+ * ahead of waiting messages. Buttons pressed during a ring are still ignored. */
+#define PEND_MAX                  6   /* waiting rings (at most one of them a call) */
+#define PEND_MAX_AGE_MS       45000   /* a ring that waited longer is dropped: no stale announcements */
+#define TRIGGER_CALL_GAP_MS    8000   /* end of a call -> earliest start of the next call (start; not tried shorter) */
+#define TRIGGER_SPEAK_REPEAT_MS 8000  /* the same spoken ringtone again: not within this of its last start */
+#define T_SPEAK_TO_CALL        1500   /* end of a spoken ringtone -> earliest start of a call (start) */
+#define T_SPEAK_GAP            1000   /* between two spoken ringtones in one off-hook */
 
 /* ---- Ringtones (BLE trigger 0x10 + index, console ":ring n"; notes/ble.md) ----
  * The app maps notifications to an index; the box knows what each one sounds like. Append only: the app stores indexes.
@@ -127,7 +134,7 @@ typedef struct { const char *name; ringtone_kind_t kind; const char *clip; } rin
 #define JAM_HZ               1750        /* in the V.8 answer band (JM, 1650/1850 Hz): the modems cannot agree while it sounds */
 #define JAM_LEVEL            DIALTONE_LEVEL
 #define T_JAM                20000       /* ms of jammed handshake before giving up (start; by ear) */
-#define T_REDIAL_PAUSE       1500        /* extra pause before the redial (the modems' reset adds ~4.5 s) */
+#define T_REDIAL_PAUSE       3800        /* extra pause before the redial (the modems' reset adds ~2.2 s; was 1500 + ~4.5 s) */
 #define DEMO_SPEAK           { 3, 2 }    /* ringtone numbers spoken after the demo call: signal, whatsapp */
 #define T_DEMO_PAUSE         1000        /* hang-up -> first voice, and between the voices (one off-hook for all) */
 #define SOUND_SPEAK_FALLBACK "dingdong"   /* played when a spoken ringtone's clip is not in the bank */
