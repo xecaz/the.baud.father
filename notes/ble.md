@@ -47,7 +47,8 @@ unencrypted access.
 ## Say (vocabulary; 2026-11-21, tested from the console and from the laptop)
 One write of `0x40, w1, w2, …` (1 to 16 word numbers, `SAY_MAX_WORDS`) makes the box say those words in that order.
 - The words are in `tools/vocab.txt`; a word's number is its position there (0 = a short pause). The list is append
-  only, because senders store numbers.
+  only, because senders store numbers. At most 240 words. Lines starting with `##` are group headings (the app shows
+  the words of each group as buttons).
 - The firmware does not know the words: word n is the bank clip named `wNNN.<word>` (`tools/mkspeech.py --vocab`,
   then `tools/mksounds.py`). New words need a new sound bank, not a new firmware. A number with no clip is left out.
 - A sentence queues like a message (see "Queue"): several are said in one off-hook, and one that arrives during a

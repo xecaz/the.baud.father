@@ -334,22 +334,76 @@ public class MainActivity extends Activity {
         askSentence("Say", "Say it", lastSentence, this::say);
     }
 
-    /** Dialog: type a sentence; the words the box knows are listed below the field. then gets a sentence the box
-     *  can say; one it cannot is reported and dropped. */
+    /** A word button of the Say dialog. */
+    private TextView chip(String label, android.widget.EditText in, String adds) {
+        TextView t = new TextView(this);
+        t.setText(label);
+        t.setTextSize(15);
+        t.setPadding(dp(11), dp(7), dp(11), dp(7));
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setColor(0x33888888);
+        bg.setCornerRadius(dp(16));
+        t.setBackground(bg);
+        t.setOnClickListener(v -> {
+            String cur = in.getText().toString().trim();
+            String next = cur.isEmpty() ? adds : adds.equals(",") ? cur + "," : cur + " " + adds;
+            in.setText(next);
+            in.setSelection(next.length());
+        });
+        return t;
+    }
+
+    /** Dialog: build a sentence by tapping the box's words (grouped as in tools/vocab.txt) or by typing. then gets
+     *  a sentence the box can say; one it cannot is reported and dropped. */
     private void askSentence(String title, String ok, String initial, TextPick then) {
         android.widget.EditText in = new android.widget.EditText(this);
-        in.setHint("3 new messages");
+        in.setHint("Tap words, or type: 3 new messages");
         in.setSingleLine(true);
         in.setText(initial);
         in.setSelection(initial.length());
-        TextView words = note("Numbers are spelled out, a comma is a short pause, up to " + Vocab.MAX_WORDS
-                + " words.\n\n" + Vocab.words(this));
+        Button back = new Button(this);
+        back.setText("⌫");
+        back.setTextSize(18);
+        back.setOnClickListener(v -> {                       // remove the last word (or pause)
+            String cur = in.getText().toString().trim();
+            int cut = cur.endsWith(",") ? cur.length() - 1 : Math.max(cur.lastIndexOf(' '), 0);
+            String next = cur.substring(0, cut).trim();
+            in.setText(next);
+            in.setSelection(next.length());
+        });
+        back.setOnLongClickListener(v -> {
+            in.setText("");
+            return true;
+        });
+        LinearLayout top = new LinearLayout(this);
+        top.setOrientation(LinearLayout.HORIZONTAL);
+        top.setGravity(Gravity.CENTER_VERTICAL);
+        top.addView(in, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        top.addView(back, new LinearLayout.LayoutParams(dp(56), LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        LinearLayout words = new LinearLayout(this);
+        words.setOrientation(LinearLayout.VERTICAL);
+        words.addView(note("Numbers can be typed as digits. Up to " + Vocab.MAX_WORDS + " words. ⌫ removes the last "
+                + "word, held: all."));
+        List<String> titles = Vocab.groupTitles(this);
+        for (int g = 0; g < titles.size(); g++) {
+            TextView h = text(13, true);
+            h.setText(titles.get(g).toUpperCase(Locale.ROOT));
+            h.setAlpha(0.6f);
+            h.setPadding(0, dp(12), 0, dp(4));
+            words.addView(h);
+            FlowLayout flow = new FlowLayout(this, dp(6));
+            if (g == 0) flow.addView(chip("pause ,", in, ","));
+            for (String w : Vocab.groupWords(this, g)) flow.addView(chip(w, in, w));
+            words.addView(flow);
+        }
         android.widget.ScrollView sc = new android.widget.ScrollView(this);
         sc.addView(words);
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(20), dp(8), dp(20), 0);
-        box.addView(in);
+        box.setFocusableInTouchMode(true);                   // the field does not take focus: no keyboard over the words
+        box.addView(top);
         box.addView(sc);
         new android.app.AlertDialog.Builder(this).setTitle(title)
                 .setView(box)

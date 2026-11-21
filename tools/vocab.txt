@@ -6,10 +6,12 @@
 # remove a line. To change how a word sounds, change its text and keep the line where it is.
 # After editing: python3 -I tools/mkspeech.py --vocab && python3 -I tools/mksounds.py, then flash (sounds partition).
 # Names: lower case letters and digits only (they are file names and what you type in say.py).
+# Lines starting with "##" are group headings: the app shows the words under them as buttons. A new word goes at the
+# very end of the file, under the last heading or a new one.
 
 pause = -
 
-# numbers
+## numbers
 zero = zero
 one = one
 two = two
@@ -41,7 +43,7 @@ ninety = ninety
 hundred = hundred
 thousand = thousand
 
-# units and time
+## units and time
 minute = minute
 minutes = minutes
 hour = hour
@@ -60,7 +62,7 @@ now = now
 today = today
 tomorrow = tomorrow
 
-# things
+## things
 message = message
 messages = messages
 call = call
@@ -86,7 +88,7 @@ server = server
 scan = scan
 report = report
 
-# states
+## states
 new = new
 incoming = incoming
 missed = missed
@@ -105,7 +107,7 @@ warning = warning
 error = error
 ok = okay
 
-# glue
+## glue
 from = from
 in = in
 at = at
@@ -125,17 +127,148 @@ on = on
 of = of
 your = your
 
-# names
+## names
 whatsapp = whats app
 signal = signal
 telegram = telegram
 discord = discord
 github = git hub
 
-# the rest
+## the rest
 hello = hello
 goodbye = goodbye
 attention = attention
 please = please
 fuck = fuck
 fucking = fucking
+
+## small words
+i = i
+my = my
+it = it
+this = this
+that = that
+with = with
+up = up
+down = down
+out = out
+off = off
+will = will
+can = can
+do = do
+dont = don't
+yes = yes
+what = what
+when = when
+where = where
+all = all
+more = more
+again = again
+still = still
+just = just
+very = very
+too = too
+soon = soon
+later = later
+
+## actions
+go = go
+need = need
+check = check
+stop = stop
+start = start
+wait = wait
+open = open
+close = close
+sent = sent
+received = received
+arrived = arrived
+waiting = waiting
+working = working
+broken = broken
+fixed = fixed
+connected = connected
+disconnected = disconnected
+updated = updated
+
+## describing
+good = good
+bad = bad
+hot = hot
+cold = cold
+high = high
+fast = fast
+slow = slow
+late = late
+busy = busy
+important = important
+urgent = urgent
+critical = critical
+
+## tech
+phone = phone
+laptop = laptop
+network = network
+internet = internet
+wifi = why fye
+bluetooth = bluetooth
+power = power
+system = system
+disk = disk
+file = file
+code = code
+test = test
+alarm = alarm
+alert = alert
+notification = notification
+security = security
+bug = bug
+password = password
+login = login
+modem = modem
+
+## life
+home = home
+work = work
+car = car
+delivery = delivery
+order = order
+money = money
+someone = someone
+family = family
+boss = boss
+doctor = doctor
+appointment = appointment
+dinner = dinner
+lunch = lunch
+pizza = pizza
+water = water
+weather = weather
+rain = rain
+sun = sun
+temperature = temperature
+
+## days
+day = day
+week = week
+month = month
+year = year
+morning = morning
+evening = evening
+night = night
+tonight = tonight
+monday = monday
+tuesday = tuesday
+wednesday = wednesday
+thursday = thursday
+friday = friday
+saturday = saturday
+sunday = sunday
+
+## extras
+thanks = thanks
+sorry = sorry
+shit = shit
+damn = damn
+baud = baud
+father = father

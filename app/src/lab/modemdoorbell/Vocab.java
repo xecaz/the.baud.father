@@ -29,6 +29,8 @@ final class Vocab {
 
     private static List<String> names;            // index = word number
     private static Map<String, Integer> index;
+    private static List<String> groupTitles;      // the "## heading" lines of vocab.txt, in order
+    private static List<List<String>> groupWords; // the words under each heading
 
     private Vocab() {}
 
@@ -45,9 +47,16 @@ final class Vocab {
         if (names != null) return;
         List<String> list = new ArrayList<>();
         Map<String, Integer> map = new HashMap<>();
+        List<String> titles = new ArrayList<>();
+        List<List<String>> groups = new ArrayList<>();
         try (BufferedReader r = new BufferedReader(
                 new InputStreamReader(c.getAssets().open("vocab.txt"), StandardCharsets.UTF_8))) {
             for (String line; (line = r.readLine()) != null; ) {
+                if (line.startsWith("##")) {                 // a group heading
+                    titles.add(line.substring(2).trim());
+                    groups.add(new ArrayList<>());
+                    continue;
+                }
                 int hash = line.indexOf('#');
                 if (hash >= 0) line = line.substring(0, hash);
                 int eq = line.indexOf('=');
@@ -56,24 +65,27 @@ final class Vocab {
                 if (name.isEmpty()) continue;
                 map.put(name, list.size());
                 list.add(name);
+                if (!groups.isEmpty()) groups.get(groups.size() - 1).add(name);
             }
         } catch (IOException e) {
             android.util.Log.w(RingSender.TAG, "vocabulary not readable: " + e);
         }
         names = list;
         index = map;
+        groupTitles = titles;
+        groupWords = groups;
     }
 
-    /** The words, in the box's order, without the pause. */
-    static String words(Context c) {
+    /** Group headings, in the file's order. */
+    static List<String> groupTitles(Context c) {
         load(c);
-        StringBuilder b = new StringBuilder();
-        for (String n : names) {
-            if (n.equals("pause")) continue;
-            if (b.length() > 0) b.append("  ");
-            b.append(n);
-        }
-        return b.toString();
+        return groupTitles;
+    }
+
+    /** The words of group i. */
+    static List<String> groupWords(Context c, int i) {
+        load(c);
+        return groupWords.get(i);
     }
 
     private static void number(int n, List<String> out) {
