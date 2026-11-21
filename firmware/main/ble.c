@@ -30,7 +30,7 @@ static const uint16_t uuid_char_decl = ESP_GATT_UUID_CHAR_DECLARE;
 static const uint16_t uuid_ccc = ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
 static const uint8_t prop_write = ESP_GATT_CHAR_PROP_BIT_WRITE;
 static const uint8_t prop_read_notify = ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
-static uint8_t trig_val[4];
+static uint8_t trig_val[1 + SAY_MAX_WORDS];   /* longest write: BLE_CMD_SAY + its words */
 static uint8_t stat_val = BLE_STATUS_IDLE;
 static uint8_t ccc_val[2];
 
@@ -319,7 +319,7 @@ static void gatts_cb(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble
         const bool is_trig = p->write.handle == s_handles[IDX_TRIG_VAL];
         const bool is_ccc = p->write.handle == s_handles[IDX_STAT_CCC];
         esp_gatt_status_t st = ESP_GATT_OK;
-        if (p->write.is_prep) st = ESP_GATT_REQ_NOT_SUPPORTED;                 /* no queued/long writes: 1 byte is all we take */
+        if (p->write.is_prep) st = ESP_GATT_REQ_NOT_SUPPORTED;                 /* no queued/long writes: one short write is all we take */
         else if (is_ccc && p->write.len != 2) st = ESP_GATT_INVALID_ATTR_LEN;
         else if (is_trig && (p->write.len < 1 || p->write.len > sizeof(trig_val))) st = ESP_GATT_INVALID_ATTR_LEN;
         else if (!is_trig && !is_ccc) st = ESP_GATT_WRITE_NOT_PERMIT;
@@ -359,6 +359,9 @@ static void gatts_cb(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble
         } else if (v >= BLE_CMD_TONE_BASE && v <= BLE_CMD_TONE_MAX) {
             ESP_LOGI(TAG, "trigger write: ringtone %d", v - BLE_CMD_TONE_BASE);
             trigger_post_tone(v - BLE_CMD_TONE_BASE);
+        } else if (v == BLE_CMD_SAY && p->write.len >= 2) {
+            ESP_LOGI(TAG, "trigger write: say, %d word(s)", p->write.len - 1);
+            trigger_post_say(p->write.value + 1, p->write.len - 1);
         } else {
             ESP_LOGW(TAG, "trigger write 0x%02x ignored", v);
         }

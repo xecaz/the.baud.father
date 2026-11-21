@@ -7,6 +7,7 @@
  *   :tone [hz]   dial tone (default 425 Hz) on the line until :tone off (works without a modem selected)
  *   :play name   play a clip from the sound bank
  *   :ring n      run ringtone n (RINGTONES in config.h), as the app would; no modem may be selected
+ *   :say n n ... say the vocabulary words with these numbers (tools/vocab.txt; tools/say.py --print gives the line)
  *   :help
  *   anything else (also an empty line) is sent to the selected modem with CR; its replies print raw. */
 #include "console.h"
@@ -36,7 +37,7 @@ static void out(const char *s) { fputs(s, stdout); fflush(stdout); }
 
 static void help(void)
 {
-    out("\n# AT console: :d dialer, :a answerer, :off release, :dtr 0|1, :dcd, :esc (+++), :tone [hz]|off, :play name, :ring n, :help\n"
+    out("\n# AT console: :d dialer, :a answerer, :off release, :dtr 0|1, :dcd, :esc (+++), :tone [hz]|off, :play name, :ring n, :say n n ..., :help\n"
         "# other lines go to the selected modem (an empty line sends CR)\n");
 }
 
@@ -92,6 +93,23 @@ static void command(char *line)
         else {
             trigger_post_tone((uint8_t)atoi(line + 6));
             printf("# ringtone %d queued\n", atoi(line + 6));
+            fflush(stdout);
+        }
+    }
+    else if (!strncmp(line, ":say ", 5)) {
+        uint8_t words[SAY_MAX_WORDS];
+        int n = 0;
+        char *s = line + 5, *end;
+        for (; n < SAY_MAX_WORDS; n++, s = end) {
+            const long v = strtol(s, &end, 10);
+            if (end == s) break;
+            words[n] = (uint8_t)v;
+        }
+        if (m) out("# release the modem first (:off)\n");
+        else if (!n) out("# :say needs word numbers\n");
+        else {
+            trigger_post_say(words, n);
+            printf("# sentence of %d word(s) queued\n", n);
             fflush(stdout);
         }
     }

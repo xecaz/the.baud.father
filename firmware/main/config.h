@@ -142,3 +142,10 @@ typedef struct { const char *name; ringtone_kind_t kind; const char *clip; } rin
 #define AT_SPEAK_OFFHOOK     "ATM2H1"     /* off-hook in command mode, speaker on */
 #define T_SPEAK_LEAD          400         /* off-hook click -> clip */
 #define T_SPEAK_TAIL          300         /* clip end -> hang up */
+
+/* ---- Vocabulary (BLE 0x40 + word numbers, console ":say n n ..."; notes/ble.md "Say") ----
+ * A sentence is a list of word numbers from tools/vocab.txt. The firmware does not know the words: word n is the
+ * bank clip whose name starts with "wNNN." (tools/mksounds.py), so new words need a new sound bank only.
+ * Sentences queue and play like spoken ringtones (one off-hook for all that wait). */
+#define SAY_MAX_WORDS         16          /* per sentence; 1 + 16 bytes fit a plain 20-byte BLE write */
+#define T_WORD_GAP            60          /* silence between two words (start; by ear) */

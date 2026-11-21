@@ -188,13 +188,25 @@ static bool ringtone_is_short(int id)
 /* ---------------- Pending rings ----------------
  * Triggers wait here until the box can play them (config.h "Triggers"). Only the main task touches the list.
  * Two kinds: spoken ringtones ("messages": short, several fit in one off-hook) and everything else ("calls"). */
-typedef struct { trigger_src_t src; uint8_t tone; int64_t at; } pend_t;
+typedef struct { trigger_t t; int64_t at; } pend_t;
 static pend_t s_pend[PEND_MAX];
 static int s_pend_n;
 static int64_t s_spoken_at[N_RINGTONES];   /* last start of each spoken ringtone (0 = never) */
+static trigger_t s_said;                   /* the last sentence said, and when it started (0 = never) */
+static int64_t s_said_at;
 static int64_t s_call_not_before;          /* earliest start of the next call */
 
-static bool pend_is_spoken(const pend_t *p) { return p->src == TRIG_BLE_TONE && ringtone_is_short(p->tone); }
+static bool trig_is_spoken(const trigger_t *t)
+{
+    return t->src == TRIG_SAY || (t->src == TRIG_BLE_TONE && ringtone_is_short(t->tone));
+}
+static bool pend_is_spoken(const pend_t *p) { return trig_is_spoken(&p->t); }
+
+static bool same_sentence(const trigger_t *a, const trigger_t *b)
+{
+    return a->src == TRIG_SAY && b->src == TRIG_SAY && a->n_words == b->n_words
+           && !memcmp(a->words, b->words, a->n_words);
+}
 
 static void pend_remove(int i)
 {
@@ -209,18 +221,32 @@ static int pend_find(bool spoken)
     return -1;
 }
 
-static void pend_add(trigger_src_t src, uint8_t tone)
+static void pend_add(const trigger_t *t)
 {
-    if (src == TRIG_BLE)     { src = TRIG_BLE_TONE; tone = RINGTONE_BLE_CALL; }   /* 0x01: a regular phone call */
-    if (src == TRIG_BLE_NET) { src = TRIG_BLE_TONE; tone = RINGTONE_BLE_NET; }    /* 0x03: an internet call */
-    const pend_t p = { .src = src, .tone = tone, .at = now_ms() };
+    pend_t p = { .t = *t, .at = now_ms() };
+    if (t->src == TRIG_BLE)     { p.t.src = TRIG_BLE_TONE; p.t.tone = RINGTONE_BLE_CALL; }   /* 0x01: a regular phone call */
+    if (t->src == TRIG_BLE_NET) { p.t.src = TRIG_BLE_TONE; p.t.tone = RINGTONE_BLE_NET; }    /* 0x03: an internet call */
+    const trigger_src_t src = p.t.src;
+    const uint8_t tone = p.t.tone;
     char what[24];
     if (src == TRIG_BLE_TONE) snprintf(what, sizeof what, "ringtone %d", tone);
+    else if (src == TRIG_SAY) snprintf(what, sizeof what, "sentence (%d words)", p.t.n_words);
     else snprintf(what, sizeof what, "%s", trigger_name(src));
 
-    if (pend_is_spoken(&p)) {
+    if (src == TRIG_SAY) {                      /* the same sentence: not twice in the list, not again right away */
         for (int i = 0; i < s_pend_n; i++) {
-            if (pend_is_spoken(&s_pend[i]) && s_pend[i].tone == tone) {
+            if (same_sentence(&s_pend[i].t, &p.t)) {
+                ESP_LOGI(TAG, "trigger: %s ignored (already waiting)", what);
+                return;
+            }
+        }
+        if (s_said_at && same_sentence(&s_said, &p.t) && p.at - s_said_at < TRIGGER_SPEAK_REPEAT_MS) {
+            ESP_LOGI(TAG, "trigger: %s ignored (said %lld s ago)", what, (p.at - s_said_at) / 1000);
+            return;
+        }
+    } else if (pend_is_spoken(&p)) {
+        for (int i = 0; i < s_pend_n; i++) {
+            if (s_pend[i].t.src == TRIG_BLE_TONE && pend_is_spoken(&s_pend[i]) && s_pend[i].t.tone == tone) {
                 ESP_LOGI(TAG, "trigger: %s ignored (already waiting)", what);
                 return;
             }
@@ -246,7 +272,7 @@ static void pend_expire(void)
     const int64_t now = now_ms();
     for (int i = s_pend_n - 1; i >= 0; i--) {
         if (now - s_pend[i].at <= PEND_MAX_AGE_MS) continue;
-        ESP_LOGW(TAG, "a waiting ring (%s %d) is %lld s old: dropped", trigger_name(s_pend[i].src), s_pend[i].tone,
+        ESP_LOGW(TAG, "a waiting ring (%s %d) is %lld s old: dropped", trigger_name(s_pend[i].t.src), s_pend[i].t.tone,
                  (now - s_pend[i].at) / 1000);
         pend_remove(i);
     }
@@ -256,11 +282,10 @@ static void pend_expire(void)
  * during a ring does not queue a second one. */
 static void collect_triggers(void)
 {
-    trigger_src_t src;
-    uint8_t tone;
-    while (trigger_wait(&src, &tone, 0)) {
-        if (src == TRIG_BLE || src == TRIG_BLE_NET || src == TRIG_BLE_TONE) pend_add(src, tone);
-        else ESP_LOGI(TAG, "%s ignored (busy)", trigger_name(src));
+    trigger_t t;
+    while (trigger_wait(&t, 0)) {
+        if (t.src == TRIG_BLE || t.src == TRIG_BLE_NET || t.src == TRIG_BLE_TONE || t.src == TRIG_SAY) pend_add(&t);
+        else ESP_LOGI(TAG, "%s ignored (busy)", trigger_name(t.src));
     }
 }
 
@@ -389,6 +414,37 @@ static void speak_clip(const char *clip)
     audio_set_level(AUDIO_LEVEL);
 }
 
+/* A sentence: word n is the bank clip named "wNNN.<word>". Words the bank does not have are left out. */
+static void speak_words(const uint8_t *words, int n)
+{
+    int idx[SAY_MAX_WORDS], k = 0;
+    static char text[160];             /* main task only; off its small stack */
+    text[0] = 0;
+    size_t len = 0;
+    for (int i = 0; i < n && k < SAY_MAX_WORDS; i++) {
+        char prefix[8];
+        snprintf(prefix, sizeof prefix, "w%03d.", words[i]);
+        const int c = audio_find_prefix(prefix);
+        if (c < 0) {
+            ESP_LOGW(TAG, "word %d is not in the bank: left out", words[i]);
+            continue;
+        }
+        idx[k++] = c;
+        if (len < sizeof text - 1)
+            len += (size_t)snprintf(text + len, sizeof text - len, "%s%.18s", len ? " " : "", audio_name(c) + 5);
+        if (len > sizeof text - 1) len = sizeof text - 1;
+    }
+    if (!k) {
+        speak_clip(SOUND_SPEAK_FALLBACK);
+        return;
+    }
+    ESP_LOGI(TAG, "say: %s", text);
+    audio_set_level(SPEAK_LEVEL);
+    if (audio_play_seq(idx, k, T_WORD_GAP)) audio_wait(-1);
+    audio_stop();
+    audio_set_level(AUDIO_LEVEL);
+}
+
 static void speak_close(void)
 {
     if (s_speak_line) {
@@ -425,12 +481,19 @@ static void speak_pending(bool after_call)
     if (after_call) speak_after_hangup();
     speak_open();
     for (int n = 0, i; (i = pend_find(true)) >= 0; n++) {
-        const int id = s_pend[i].tone;
+        const trigger_t t = s_pend[i].t;
         pend_remove(i);
         if (n) delay_ms(T_SPEAK_GAP);
-        ESP_LOGI(TAG, "ringtone %d \"%s\"%s", id, s_ringtones[id].name, after_call ? " (after the call)" : "");
-        s_spoken_at[id] = now_ms();
-        speak_clip(s_ringtones[id].clip);
+        if (t.src == TRIG_SAY) {
+            s_said = t;
+            s_said_at = now_ms();
+            speak_words(t.words, t.n_words);
+        } else {
+            const int id = t.tone;
+            ESP_LOGI(TAG, "ringtone %d \"%s\"%s", id, s_ringtones[id].name, after_call ? " (after the call)" : "");
+            s_spoken_at[id] = now_ms();
+            speak_clip(s_ringtones[id].clip);
+        }
         collect_triggers();
         pend_expire();
         if (!after_call && pend_find(false) >= 0 && now_ms() + T_SPEAK_TO_CALL >= s_call_not_before) break;
@@ -586,9 +649,9 @@ void app_main(void)
     bool waiting = false;   /* Status shows "a ring is waiting" */
     bool pairing = false;
     for (;;) {
-        trigger_src_t src;
-        uint8_t tone = 0;
-        bool got = trigger_wait(&src, &tone, pdMS_TO_TICKS(s_pend_n ? 50 : 250));
+        trigger_t trig = {0};
+        bool got = trigger_wait(&trig, pdMS_TO_TICKS(s_pend_n ? 50 : 250));
+        const trigger_src_t src = trig.src;
 
         /* Housekeeping: Bluetooth health, expire the pairing window. */
         if (ble_is_stuck()) {
@@ -627,7 +690,7 @@ void app_main(void)
             }
             if (p != PRESS_SHORT) got = false;
         }
-        if (got) pend_add(src, tone);
+        if (got) pend_add(&trig);
 
         /* What to play now: a call that is due goes first, else the waiting messages. A call inside the gap
          * after the previous one waits (Status "cooldown"). */
@@ -653,10 +716,10 @@ void app_main(void)
         }
         ble_set_status(BLE_STATUS_CALLING);
         if (call_due) {
-            const pend_t p = s_pend[call];
+            const trigger_t t = s_pend[call].t;
             pend_remove(call);
-            if (p.src == TRIG_BLE_TONE) run_ringtone(p.tone);
-            else run_call(p.src);
+            if (t.src == TRIG_BLE_TONE) run_ringtone(t.tone);
+            else run_call(t.src);
             s_call_not_before = now_ms() + TRIGGER_CALL_GAP_MS;
         } else {
             speak_pending(false);

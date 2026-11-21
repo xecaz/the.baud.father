@@ -8,9 +8,11 @@ dependency of speech-dispatcher) through ctypes. No espeak-ng command needed, no
     python3 -I tools/mkspeech.py door="Someone is at the door"
     python3 -I tools/mkspeech.py --style klatt --out /tmp/x whatsapp="Whats app message"
     python3 -I tools/mkspeech.py --list                   # styles
+    python3 -I tools/mkspeech.py --vocab                  # every word in tools/vocab.txt -> firmware/sounds/vocab/<name>.wav
 
 Then: python3 -I tools/mksounds.py  (converts to 8 kHz for the bank), and flash.
 Output: 16-bit mono WAV at the synthesizer's rate (22050 Hz), 150 ms of silence before and after.
+Vocabulary words are cut tight instead (20 ms each side): the box strings them together (T_WORD_GAP in config.h).
 """
 import argparse
 import ctypes
@@ -19,6 +21,9 @@ import struct
 import sys
 import wave
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))   # tools/vocab.py (python3 -I drops the script's folder)
+import vocab
 
 PHRASES = {"whatsapp": "Whats app message", "signal": "Signal message", "email": "Incoming e-mail", "food": "Food update"}
 
@@ -79,6 +84,65 @@ def highpass(x, hz, rate):
     return x
 
 
+def trim(x, rate, keep_ms=20, floor=0.02):
+    """Cut the silence off both ends, leaving keep_ms."""
+    lim = max(abs(v) for v in x) * floor
+    loud = [i for i, v in enumerate(x) if abs(v) > lim]
+    k = int(rate * keep_ms / 1000)
+    return x[max(0, loud[0] - k):loud[-1] + 1 + k]
+
+
+def rms(x):
+    return math.sqrt(sum(v * v for v in x) / max(1, len(x)))
+
+
+# Vocabulary words are levelled by a rough measure of what the modem speaker plays: the RMS above SPEAKER_HP Hz of the
+# finished clip ("Food update", the phrase that was too quiet by ear, also measures lowest of the phrases). A word
+# below QUIET_RATIO of the list's median is redone with the high-pass/drive pair from QUIET_FIXES that lands closest
+# to the median. LOUD is for whole phrases (tuned by ear) and is not used here.
+SPEAKER_HP = 600
+QUIET_RATIO = 0.75
+QUIET_FIXES = [(hp, drive) for hp in (300, 500, 700) for drive in (4.0, 6.0, 10.0)]
+
+
+def speaker_level(x, rate):
+    return rms(highpass(x, SPEAKER_HP, rate))
+
+
+def make_vocab(lib, rate, out):
+    """Every word of tools/vocab.txt -> out/vocab/<name>.wav."""
+    out = out / "vocab"
+    out.mkdir(parents=True, exist_ok=True)
+    words = [(n, t) for n, t in vocab.load() if t != "-"]
+    raw = {n: trim(synth(lib, t), rate) for n, t in words}
+    clips = {n: crunch(raw[n]) for n, _ in words}
+    levels = {n: speaker_level(c, rate) for n, c in clips.items()}
+    median = sorted(levels.values())[len(levels) // 2]
+    fixed = []
+    for n, _ in words:
+        if levels[n] >= QUIET_RATIO * median:
+            continue
+        tries = [(crunch(highpass(raw[n], hp, rate), drive), hp, drive) for hp, drive in QUIET_FIXES]
+        best = min(tries, key=lambda t: abs(speaker_level(t[0], rate) - median))
+        clips[n] = best[0]
+        fixed.append(f"{n} {levels[n] / median:.2f} -> {speaker_level(best[0], rate) / median:.2f} "
+                     f"(high-pass {best[1]} Hz, drive {best[2]:g})")
+    total = 0.0
+    for n, _ in words:
+        write_wav(out / f"{n}.wav", clips[n], rate)
+        total += len(clips[n]) / rate
+    print(f"{out}: {len(words)} words, {total:.1f} s")
+    print("quiet words raised (speaker level against the median):" + ("".join("\n  " + f for f in fixed) or " none"))
+
+
+def write_wav(path, x, rate):
+    with wave.open(str(path), "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(rate)
+        w.writeframes(struct.pack(f"<{len(x)}h", *x))
+
+
 def crunch(x, drive=DRIVE):
     """Normalize, push into a soft clipper (louder at the same peak: the DAC is already at full scale), then
     8-bit quantize like the Amiga's DAC."""
@@ -98,6 +162,7 @@ def main():
     ap.add_argument("--out", default=str(Path(__file__).resolve().parent.parent / "firmware" / "sounds"))
     ap.add_argument("--suffix", default="", help="appended to each file name (for comparing styles)")
     ap.add_argument("--list", action="store_true")
+    ap.add_argument("--vocab", action="store_true", help="make the vocabulary words (tools/vocab.txt) instead of phrases")
     a = ap.parse_args()
     if a.list:
         for k, v in STYLES.items():
@@ -126,6 +191,10 @@ def main():
 
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
+    if a.vocab:
+        make_vocab(lib, rate, out)
+        lib.espeak_Terminate()
+        return
     pad = [0] * int(rate * 0.15)
     for name, text in phrases.items():
         x = synth(lib, text)
@@ -138,11 +207,7 @@ def main():
             x = crunch(x, drive)
         x = pad + x + pad
         path = out / f"{name}{a.suffix}.wav"
-        with wave.open(str(path), "wb") as w:
-            w.setnchannels(1)
-            w.setsampwidth(2)
-            w.setframerate(rate)
-            w.writeframes(struct.pack(f"<{len(x)}h", *x))
+        write_wav(path, x, rate)
         print(f"{path}: {text!r}, {len(x) / rate:.2f} s, style {a.style}")
     lib.espeak_Terminate()
 

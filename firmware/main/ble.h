@@ -20,7 +20,8 @@
 #include "esp_err.h"
 
 enum { BLE_CMD_RING = 0x01, BLE_CMD_IDENTIFY = 0x02, BLE_CMD_RING_NET = 0x03,
-       BLE_CMD_TONE_BASE = 0x10, BLE_CMD_TONE_MAX = 0x2f };   /* 0x10 + n: ringtone n (RINGTONES in config.h) */
+       BLE_CMD_TONE_BASE = 0x10, BLE_CMD_TONE_MAX = 0x2f,     /* 0x10 + n: ringtone n (RINGTONES in config.h) */
+       BLE_CMD_SAY = 0x40 };   /* followed by 1..SAY_MAX_WORDS word numbers (tools/vocab.txt): say that sentence */
 /* 0x03: internet call (WhatsApp etc.) */
 
 typedef enum {

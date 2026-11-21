@@ -24,8 +24,12 @@ final class Ringtones {
             "Voice: \"Food update\"",
     };
 
+    /** Stored instead of a ringtone number: the app has its own sentence (see sentence()), said from the vocabulary. */
+    static final int SAY = 1000;
+
     private static final String PREFS = "doorbell_sounds";
     private static final String APP = "app:";
+    private static final String SENTENCE = "say:";
     private static final String KEY_ON = "message_sounds";
     private static final String KEY_MISC_ON = "misc_sounds";
     private static final String KEY_QUIET = "quiet_hours";
@@ -102,7 +106,23 @@ final class Ringtones {
         SharedPreferences.Editor e = prefs(c).edit();
         if (n < 0) e.remove(APP + pkg);
         else e.putInt(APP + pkg, n);
+        if (n != SAY) e.remove(SENTENCE + pkg);
         e.apply();
+    }
+
+    /** The sentence the box says for this app's notifications ("" if none). */
+    static String sentence(Context c, String pkg) {
+        return prefs(c).getString(SENTENCE + pkg, "");
+    }
+
+    static void setSentence(Context c, String pkg, String text) {
+        prefs(c).edit().putInt(APP + pkg, SAY).putString(SENTENCE + pkg, text).apply();
+    }
+
+    /** What an app is mapped to, for the list. */
+    static String label(Context c, String pkg, int n) {
+        if (n < 0) return "No sound";
+        return n == SAY ? "Say: \"" + sentence(c, pkg) + "\"" : name(n);
     }
 
     /** package -> ringtone, sorted by package. */

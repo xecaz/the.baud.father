@@ -31,7 +31,10 @@ open("build/icon_fg.svg", "w").write(fg)
 PYEOF
 rsvg-convert -w 432 -h 432 -o build/res/mipmap-xxxhdpi/ic_launcher_fg.png build/icon_fg.svg
 "$BT/aapt2" compile --dir build/res -o build/res.zip
-"$BT/aapt2" link -o build/base.apk -I "$JAR" --manifest AndroidManifest.xml build/res.zip \
+# The box's vocabulary (tools/vocab.txt) as an asset: Vocab.java reads it, so the app and the box share one list.
+mkdir -p build/assets
+cp ../tools/vocab.txt build/assets/vocab.txt
+"$BT/aapt2" link -o build/base.apk -I "$JAR" --manifest AndroidManifest.xml build/res.zip -A build/assets \
     --min-sdk-version "$MIN_SDK" --target-sdk-version "$TARGET_SDK"
 
 echo "[2/5] javac"

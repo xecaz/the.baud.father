@@ -53,6 +53,11 @@ final class RingSender {
 
     /** call = a call ring (deduped against other call rings only); otherwise a message sound (dropped only if something was sent within the last second: the box queues the rest). */
     static void send(Context ctx, String reason, byte cmd, boolean call, Runnable done) {
+        send(ctx, reason, new byte[]{cmd}, call, done);
+    }
+
+    /** cmd: the whole trigger write (one command byte, or 0x40 and the words of a sentence). */
+    static void send(Context ctx, String reason, byte[] cmd, boolean call, Runnable done) {
         Context app = ctx.getApplicationContext();
         if (app.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             Log.w(TAG, "ring (" + reason + "): no BLUETOOTH_CONNECT permission");
@@ -121,7 +126,7 @@ final class RingSender {
                     finish.run();
                     return;
                 }
-                int r = g.writeCharacteristic(trig, new byte[]{cmd},
+                int r = g.writeCharacteristic(trig, cmd,
                         BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
                 if (r != BluetoothStatusCodes.SUCCESS) {
                     Log.w(TAG, "ring (" + reason + "): write refused (" + r + ")");

@@ -98,6 +98,17 @@ public class CallNotificationListener extends NotificationListenerService {
             return;
         }
         lastByApp.put(pkg, now);
+        if (tone == Ringtones.SAY) {                              // the app's own sentence, from the box's vocabulary
+            String text = Ringtones.sentence(this, pkg);
+            try {
+                byte[] cmd = Vocab.command(this, Vocab.spell(this, text));
+                Log.i(RingSender.TAG, "notification from " + pkg + ": say \"" + text + "\"");
+                RingSender.send(this, "notification " + pkg, cmd, false, () -> { });
+            } catch (Vocab.Unknown e) {
+                Log.w(RingSender.TAG, "notification from " + pkg + ": sentence \"" + text + "\" not sent: " + e.getMessage());
+            }
+            return;
+        }
         Log.i(RingSender.TAG, "notification from " + pkg + ": ringtone " + tone);
         RingSender.send(this, "notification " + pkg, Ringtones.cmd(tone), false, () -> { });
     }

@@ -10,6 +10,8 @@ mono, low-pass filtered for the telephone band, and normalized.
     cd firmware && idf.py flash                  # flashes the app and firmware/sounds/bank.bin
 
 The clip name is the file name without extension (max 23 characters); config.h picks clips by name.
+Vocabulary words (tools/vocab.txt, clips from firmware/sounds/vocab/, made by mkspeech.py --vocab) go in as
+"wNNN.name", NNN = the word's number; the firmware finds them by that prefix. Not with WAVs on the command line.
 WAV input: PCM 8/16/24/32-bit, any rate, mono or stereo. Other formats: convert first, e.g.
     ffmpeg -i in.mp3 -ac 1 -ar 8000 out.wav      or      sox in.flac -c 1 -r 8000 out.wav
 
@@ -25,6 +27,9 @@ import struct
 import sys
 import wave
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))   # tools/vocab.py (python3 -I drops the script's folder)
+import vocab
 
 RATE = 8000
 PARTITION_SIZE = 0x270000          # firmware/partitions.csv "sounds"
@@ -186,14 +191,14 @@ def main():
     rng = random.Random(1)                     # fixed seed: same input, same bank
     clips, names = [], set()
 
-    def add(name, samples):
+    def add(name, samples, peak=0.9):
         if len(name) > NAME_LEN - 1:
             sys.exit(f"clip name too long (max {NAME_LEN - 1}): {name}")
         if name in names:
             sys.exit(f"duplicate clip name: {name}")
         names.add(name)
         if not args.no_normalize:
-            samples = normalize(samples)
+            samples = normalize(samples, peak)
         clips.append((name, to_u8(samples, rng)))
 
     if not args.no_builtin:
@@ -202,10 +207,25 @@ def main():
     for p in wavs:
         x, rate = read_wav(p)
         add(p.stem, resample(x, rate))
+    missing = []
+    if not args.wavs:
+        for i, (name, text) in enumerate(vocab.load()):
+            p = SOUND_DIR / "vocab" / f"{name}.wav"
+            if text == "-":
+                add(vocab.clip_name(i, name), [0.0] * int(0.25 * RATE))
+            elif p.exists():
+                x, rate = read_wav(p)
+                add(vocab.clip_name(i, name), resample(x, rate))
+            else:
+                missing.append(name)
 
     bank = build(clips)
     for name, pcm in clips:
         print(f"  {name:<23} {len(pcm) / RATE:6.2f} s  {len(pcm) / 1024:7.1f} KB")
+    if missing:
+        print(f"vocabulary words without a clip (run tools/mkspeech.py --vocab): {', '.join(missing)}")
+    if len(clips) > 256:
+        sys.exit(f"{len(clips)} clips, the firmware takes 256 (BANK_MAX_CLIPS in audio.c)")
     print(f"bank: {len(clips)} clips, {len(bank) / 1024:.1f} KB of {PARTITION_SIZE // 1024} KB")
     if len(bank) > PARTITION_SIZE:
         sys.exit("too big for the sounds partition")

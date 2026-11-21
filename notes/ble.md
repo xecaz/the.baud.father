@@ -12,7 +12,7 @@ Source of truth for the firmware (`firmware/main/ble.c`, `ble.h`) and the app (`
 
 | Characteristic | UUID | Properties | Value |
 |---|---|---|---|
-| Trigger | `2139d582-b04a-4808-8e1f-f08bb13d8de6` | write (encrypted link) | `0x01` ring, `0x02` identify (blink the LED 3×, no call, no rate limit), `0x03` ring for an internet call (WhatsApp etc.: the box plays the `v90` clip as the handshake, dialer only; a normal call if the clip is missing). `0x10 + n` (up to `0x2f`): ringtone n from the box's table (`RINGTONES` in config.h; 2026-11-14, run from the console with `:ring n`, not yet from the app): 0 call, 1 56k clip, 2 "whatsapp" spoken, 3 "signal" spoken, 4 failed negotiation + redial, 5 "email" spoken, 6 demo, 7 "food update" spoken; since the same day `0x01` rings ringtone 4 and `0x03` ringtone 0; an unknown n rings like `0x01`. Other values are ignored. |
+| Trigger | `2139d582-b04a-4808-8e1f-f08bb13d8de6` | write (encrypted link) | `0x01` ring, `0x02` identify (blink the LED 3×, no call, no rate limit), `0x03` ring for an internet call (WhatsApp etc.: the box plays the `v90` clip as the handshake, dialer only; a normal call if the clip is missing). `0x10 + n` (up to `0x2f`): ringtone n from the box's table (`RINGTONES` in config.h; 2026-11-14, run from the console with `:ring n`, not yet from the app): 0 call, 1 56k clip, 2 "whatsapp" spoken, 3 "signal" spoken, 4 failed negotiation + redial, 5 "email" spoken, 6 demo, 7 "food update" spoken; since the same day `0x01` rings ringtone 4 and `0x03` ringtone 0; an unknown n rings like `0x01`. `0x40` followed by 1 to 16 word numbers: say that sentence (see "Say"). Other values are ignored. |
 | Status | `2139d583-b04a-4808-8e1f-f08bb13d8de6` | read + notify (encrypted) | 1 byte: `0` idle, `1` calling, `2` a queued ring is waiting (triggers are still accepted), `3` pairing window open |
 
 Both characteristics and the status CCCD need an **encrypted, bonded link**; the stack rejects
@@ -43,6 +43,18 @@ unencrypted access.
 - Background ring: connect to the bonded box by address (no scan), write `0x01`, disconnect. Measured
   2026-11-07: WhatsApp notification → ring written in 122 ms.
 - Not after "Force stop" in Android settings (Android blocks all background events until the app is opened).
+
+## Say (vocabulary; 2026-11-21, tested from the console and from the laptop)
+One write of `0x40, w1, w2, …` (1 to 16 word numbers, `SAY_MAX_WORDS`) makes the box say those words in that order.
+- The words are in `tools/vocab.txt`; a word's number is its position there (0 = a short pause). The list is append
+  only, because senders store numbers.
+- The firmware does not know the words: word n is the bank clip named `wNNN.<word>` (`tools/mkspeech.py --vocab`,
+  then `tools/mksounds.py`). New words need a new sound bank, not a new firmware. A number with no clip is left out.
+- A sentence queues like a message (see "Queue"): several are said in one off-hook, and one that arrives during a
+  call is said after the hang-up. The same sentence is not queued twice, and not repeated within 8 s.
+- The whole write is 2 to 17 bytes, so it fits a plain 20-byte write (queued writes stay refused).
+- Senders: `python3 -I tools/say.py 3 new messages` (laptop), console `:say 4 72 49`, the app's "Say…" button
+  (app 0.8; `app/build.sh` packs `tools/vocab.txt` into the app, so rebuild the app after adding words).
 
 ## Queue (replaces the rate limit; 2026-11-18, tested from the console with `:ring`)
 Triggers that arrive while the box is busy wait in a short list (6 entries, `PEND_MAX`) instead of being dropped.
@@ -76,7 +88,7 @@ Tested with a raw ATT client from a bonded laptop, on unencrypted and encrypted 
 - **Unencrypted links are dropped after 8 s** (not during the pairing window + 20 s), so idle strangers cannot hold
   the 3 link slots.
 - **Pairing:** LE Secure Connections only, 16-byte keys only, one new device per pairing window.
-- **Trigger writes** of one link closer together than 250 ms are dropped (per link since the queue, so two devices writing at once both count). Trigger length must be 1 to 4 bytes, CCC exactly 2.
+- **Trigger writes** of one link closer together than 250 ms are dropped (per link since the queue, so two devices writing at once both count). Trigger length must be 1 to 17 bytes (was 4 before "Say"), CCC exactly 2.
 - **Health check:** every 30 s a request goes through the whole stack; two unanswered ones restart the box (between
   calls). The task watchdog now reboots too, and stack/heap checks are on (`sdkconfig.defaults`).
   The restart path has not been exercised by a real hang since the fix (nothing hangs it any more).

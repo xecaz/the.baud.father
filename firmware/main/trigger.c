@@ -1,12 +1,13 @@
 #include "trigger.h"
 #include "config.h"
 
+#include <string.h>
+
 #include "driver/gpio.h"
 #include "esp_attr.h"
 #include "freertos/queue.h"
 
-/* Queue item: source in the low byte, ringtone number in the high byte. */
-static QueueHandle_t s_q;
+static QueueHandle_t s_q;               /* of trigger_t */
 static TickType_t s_last[TRIG_COUNT];
 
 static void IRAM_ATTR button_isr(void *arg)
@@ -16,14 +17,14 @@ static void IRAM_ATTR button_isr(void *arg)
     if (now - s_last[src] < pdMS_TO_TICKS(TRIGGER_DEBOUNCE_MS)) return;
     s_last[src] = now;
     BaseType_t woken = pdFALSE;
-    const uint16_t item = (uint16_t)src;
+    const trigger_t item = { .src = src };
     xQueueSendFromISR(s_q, &item, &woken);
     if (woken) portYIELD_FROM_ISR();
 }
 
 void trigger_init(void)
 {
-    s_q = xQueueCreate(8, sizeof(uint16_t));
+    s_q = xQueueCreate(8, sizeof(trigger_t));
     const gpio_config_t btn = {
         .pin_bit_mask = (1ULL << PIN_RING_BTN) | (1ULL << PIN_BOOT_BTN),
         .mode = GPIO_MODE_INPUT,
@@ -38,23 +39,27 @@ void trigger_init(void)
 
 void trigger_post(trigger_src_t src)
 {
-    const uint16_t item = (uint16_t)src;
+    const trigger_t item = { .src = src };
     xQueueSend(s_q, &item, 0);
 }
 
 void trigger_post_tone(uint8_t id)
 {
-    const uint16_t item = (uint16_t)TRIG_BLE_TONE | ((uint16_t)id << 8);
+    const trigger_t item = { .src = TRIG_BLE_TONE, .tone = id };
     xQueueSend(s_q, &item, 0);
 }
 
-bool trigger_wait(trigger_src_t *src, uint8_t *tone, TickType_t timeout)
+void trigger_post_say(const uint8_t *words, int n)
 {
-    uint16_t item;
-    if (xQueueReceive(s_q, &item, timeout) != pdTRUE) return false;
-    *src = (trigger_src_t)(item & 0xff);
-    *tone = (uint8_t)(item >> 8);
-    return true;
+    if (n < 1) return;
+    trigger_t item = { .src = TRIG_SAY, .n_words = (uint8_t)(n > SAY_MAX_WORDS ? SAY_MAX_WORDS : n) };
+    memcpy(item.words, words, item.n_words);
+    xQueueSend(s_q, &item, 0);
+}
+
+bool trigger_wait(trigger_t *t, TickType_t timeout)
+{
+    return xQueueReceive(s_q, t, timeout) == pdTRUE;
 }
 
 void trigger_clear(void)
@@ -71,6 +76,7 @@ const char *trigger_name(trigger_src_t src)
     case TRIG_BLE_IDENTIFY: return "BLE identify";
     case TRIG_BLE_NET: return "BLE internet call";
     case TRIG_BLE_TONE: return "ringtone";
+    case TRIG_SAY: return "say";
     default: return "?";
     }
 }

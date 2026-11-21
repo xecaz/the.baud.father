@@ -1,0 +1,141 @@
+# The box's vocabulary: words it can say in any order (BLE 0x40 + word numbers, console ":say", tools/say.py).
+#
+#   name = text to speak        ("-" = a short silence)
+#
+# A word's number is its position in this list (first = 0). APPEND ONLY: senders store numbers, so never reorder or
+# remove a line. To change how a word sounds, change its text and keep the line where it is.
+# After editing: python3 -I tools/mkspeech.py --vocab && python3 -I tools/mksounds.py, then flash (sounds partition).
+# Names: lower case letters and digits only (they are file names and what you type in say.py).
+
+pause = -
+
+# numbers
+zero = zero
+one = one
+two = two
+three = three
+four = four
+five = five
+six = six
+seven = seven
+eight = eight
+nine = nine
+ten = ten
+eleven = eleven
+twelve = twelve
+thirteen = thirteen
+fourteen = fourteen
+fifteen = fifteen
+sixteen = sixteen
+seventeen = seventeen
+eighteen = eighteen
+nineteen = nineteen
+twenty = twenty
+thirty = thirty
+forty = forty
+fifty = fifty
+sixty = sixty
+seventy = seventy
+eighty = eighty
+ninety = ninety
+hundred = hundred
+thousand = thousand
+
+# units and time
+minute = minute
+minutes = minutes
+hour = hour
+hours = hours
+second = second
+seconds = seconds
+oclock = o'clock
+percent = percent
+degrees = degrees
+point = point
+minus = minus
+half = half
+past = past
+time = time
+now = now
+today = today
+tomorrow = tomorrow
+
+# things
+message = message
+messages = messages
+call = call
+calls = calls
+email = e-mail
+meeting = meeting
+reminder = reminder
+update = update
+backup = backup
+build = build
+job = job
+download = download
+upload = upload
+door = door
+food = food
+coffee = coffee
+laundry = laundry
+package = package
+timer = timer
+battery = battery
+printer = printer
+server = server
+scan = scan
+report = report
+
+# states
+new = new
+incoming = incoming
+missed = missed
+done = done
+finished = finished
+failed = failed
+started = started
+ready = ready
+running = running
+low = low
+full = full
+empty = empty
+online = online
+offline = offline
+warning = warning
+error = error
+ok = okay
+
+# glue
+from = from
+in = in
+at = at
+and = and
+is = is
+are = are
+the = the
+you = you
+have = have
+has = has
+no = no
+not = not
+a = a
+for = for
+to = to
+on = on
+of = of
+your = your
+
+# names
+whatsapp = whats app
+signal = signal
+telegram = telegram
+discord = discord
+github = git hub
+
+# the rest
+hello = hello
+goodbye = goodbye
+attention = attention
+please = please
+fuck = fuck
+fucking = fucking

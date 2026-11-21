@@ -46,8 +46,8 @@ static int s_count;
 #define RAMP_OPEN_MS    60            /* 0 V -> mid-scale; slow so the coupling cap does not thump */
 #define RAMP_SWITCH_MS  8
 
-typedef enum { CMD_PLAY, CMD_TONE, CMD_STOP } cmd_kind_t;
-typedef struct { cmd_kind_t kind; int idx, hz, level; } cmd_t;
+typedef enum { CMD_PLAY, CMD_SEQ, CMD_TONE, CMD_STOP } cmd_kind_t;
+typedef struct { cmd_kind_t kind; int idx, hz, level, gap_ms; uint8_t n, seq[AUDIO_SEQ_MAX]; } cmd_t;
 
 static QueueHandle_t s_q;
 static EventGroupHandle_t s_ev;
@@ -56,6 +56,9 @@ static EventGroupHandle_t s_ev;
 static dac_continuous_handle_t s_dac;
 static uint8_t s_last;                /* last value written: ramps start from here */
 static uint8_t s_buf[CHUNK];
+/* Samples collected for the next full CHUNK (see out()). */
+static uint8_t s_acc[CHUNK], s_swapped[CHUNK];
+static size_t s_acc_n;
 static int8_t s_sine[256];
 
 static void dac_open(void)
@@ -72,10 +75,14 @@ static void dac_open(void)
     ESP_ERROR_CHECK(dac_continuous_new_channels(&cfg, &s_dac));
     ESP_ERROR_CHECK(dac_continuous_enable(s_dac));
     s_last = 0;
+    s_acc_n = 0;
 }
+
+static void flush(void);
 
 static void dac_close(void)
 {
+    flush();
     vTaskDelay(pdMS_TO_TICKS(DRAIN_MS));       /* let the queued DMA buffers play out */
     ESP_ERROR_CHECK(dac_continuous_disable(s_dac));   /* powers the DAC down: pin floats */
     ESP_ERROR_CHECK(dac_continuous_del_channels(s_dac));
@@ -84,20 +91,42 @@ static void dac_close(void)
 
 /* The ESP32 DMA DAC plays each pair of samples swapped (2,1,4,3...): its I2S "mono" still sends
  * left/right words in the wrong order. Heard 2026-11-09 as a 3575 Hz ghost on the 425 Hz tone (every
- * frequency mirrored around fs/2). Pre-swap the pairs; an odd tail is padded by repeating the last sample. */
-static uint8_t s_swapped[CHUNK + 1];
+ * frequency mirrored around fs/2). Pre-swap the pairs.
+ *
+ * The driver only ever gets whole CHUNKs: out() collects the samples and flush() pads the last one. Short writes
+ * each take descriptors of their own (the driver splits every write in two), and several in a row (clip tail, ramp,
+ * word gap, ramp) stalled dac_continuous_write() for good in the middle of a sentence (2026-11-21, IDF 5.5.1). */
+
+static void write_chunk(void)
+{
+    for (size_t i = 0; i < CHUNK; i += 2) {
+        s_swapped[i] = s_acc[i + 1];
+        s_swapped[i + 1] = s_acc[i];
+    }
+    dac_continuous_write(s_dac, s_swapped, CHUNK, NULL, -1);
+    s_acc_n = 0;
+}
 
 static void out(const uint8_t *buf, size_t n)
 {
     if (!n) return;
-    size_t m = n + (n & 1);
-    for (size_t i = 0; i < m; i += 2) {
-        uint8_t a = buf[i], b = i + 1 < n ? buf[i + 1] : buf[n - 1];
-        s_swapped[i] = b;
-        s_swapped[i + 1] = a;
-    }
-    dac_continuous_write(s_dac, s_swapped, m, NULL, -1);
     s_last = buf[n - 1];
+    while (n) {
+        size_t k = CHUNK - s_acc_n < n ? CHUNK - s_acc_n : n;
+        memcpy(s_acc + s_acc_n, buf, k);
+        s_acc_n += k;
+        buf += k;
+        n -= k;
+        if (s_acc_n == CHUNK) write_chunk();
+    }
+}
+
+/* Send what is still collected, padded with the last value (before the DAC is closed). */
+static void flush(void)
+{
+    if (!s_acc_n) return;
+    memset(s_acc + s_acc_n, s_last, CHUNK - s_acc_n);
+    write_chunk();
 }
 
 static void ramp(uint8_t to, int ms)
@@ -121,21 +150,46 @@ static inline uint8_t scale(uint8_t s)
     return 128 + (((int)s - 128) * s_clip_level >> 8);
 }
 
+/* One clip to its end. Returns true with *next filled if interrupted by a command. */
+static bool play_clip(int idx, cmd_t *next)
+{
+    const bank_entry_t *e = &s_entries[idx];
+    const uint8_t *p = s_bank + e->offset;
+    ESP_LOGI(TAG, "play \"%.24s\" (%lu ms)", e->name, (unsigned long)audio_len_ms(idx));
+    if (e->length) ramp(scale(p[0]), RAMP_SWITCH_MS);
+    for (uint32_t pos = 0; pos < e->length;) {
+        if (xQueueReceive(s_q, next, 0) == pdTRUE) return true;
+        uint32_t k = e->length - pos > CHUNK ? CHUNK : e->length - pos;
+        for (uint32_t i = 0; i < k; i++) s_buf[i] = scale(p[pos + i]);
+        out(s_buf, k);
+        pos += k;
+    }
+    return false;
+}
+
+/* Mid-scale for ms (between the clips of a sequence). */
+static bool silence(int ms, cmd_t *next)
+{
+    ramp(128, RAMP_SWITCH_MS);
+    for (int left = ms * AUDIO_RATE_HZ / 1000; left > 0;) {
+        if (xQueueReceive(s_q, next, 0) == pdTRUE) return true;
+        int k = left > CHUNK ? CHUNK : left;
+        memset(s_buf, 128, (size_t)k);
+        out(s_buf, (size_t)k);
+        left -= k;
+    }
+    return false;
+}
+
 /* Plays one source until it ends or another command arrives.
  * Returns true with *next filled if interrupted by a command. */
 static bool run_source(const cmd_t *c, cmd_t *next)
 {
-    if (c->kind == CMD_PLAY) {
-        const bank_entry_t *e = &s_entries[c->idx];
-        const uint8_t *p = s_bank + e->offset;
-        ESP_LOGI(TAG, "play \"%.24s\" (%lu ms)", e->name, (unsigned long)audio_len_ms(c->idx));
-        if (e->length) ramp(scale(p[0]), RAMP_SWITCH_MS);
-        for (uint32_t pos = 0; pos < e->length;) {
-            if (xQueueReceive(s_q, next, 0) == pdTRUE) return true;
-            uint32_t k = e->length - pos > CHUNK ? CHUNK : e->length - pos;
-            for (uint32_t i = 0; i < k; i++) s_buf[i] = scale(p[pos + i]);
-            out(s_buf, k);
-            pos += k;
+    if (c->kind == CMD_PLAY) return play_clip(c->idx, next);
+    if (c->kind == CMD_SEQ) {
+        for (int i = 0; i < c->n; i++) {
+            if (i && silence(c->gap_ms, next)) return true;
+            if (play_clip(c->seq[i], next)) return true;
         }
         return false;
     }
@@ -271,6 +325,16 @@ int audio_find(const char *name)
     return -1;
 }
 
+int audio_find_prefix(const char *prefix)
+{
+    const size_t n = strlen(prefix);
+    if (n > sizeof s_entries[0].name) return -1;
+    for (int i = 0; i < s_count; i++) {
+        if (strncmp(s_entries[i].name, prefix, n) == 0) return i;
+    }
+    return -1;
+}
+
 uint32_t audio_len_ms(int idx)
 {
     if (idx < 0 || idx >= s_count) return 0;
@@ -281,6 +345,18 @@ bool audio_play(int idx)
 {
     if (idx < 0 || idx >= s_count) return false;
     send((cmd_t){ .kind = CMD_PLAY, .idx = idx });
+    return true;
+}
+
+bool audio_play_seq(const int *idx, int n, int gap_ms)
+{
+    if (n < 1 || n > AUDIO_SEQ_MAX) return false;
+    cmd_t c = { .kind = CMD_SEQ, .n = (uint8_t)n, .gap_ms = gap_ms < 0 ? 0 : gap_ms };
+    for (int i = 0; i < n; i++) {
+        if (idx[i] < 0 || idx[i] >= s_count) return false;
+        c.seq[i] = (uint8_t)idx[i];      /* BANK_MAX_CLIPS is 256 */
+    }
+    send(c);
     return true;
 }
 

@@ -40,8 +40,14 @@ def find_box(name=BOX_NAME):
 
 
 def ring(tone, box):
-    """Connect, write one byte, disconnect. True if the write was attempted on a connected link."""
-    steps = ((f"connect {box}", 7), (f"gatt.select-attribute {TRIGGER}", 1), (f"gatt.write 0x{TONE_BASE + tone:02x}", 2),
+    """Ringtone n. True if the write was attempted on a connected link."""
+    return write([TONE_BASE + tone], box)
+
+
+def write(data, box):
+    """Connect, write these bytes to the trigger in one go, disconnect. True if the write was attempted on a connected link."""
+    value = " ".join(f"0x{b:02x}" for b in data)
+    steps = ((f"connect {box}", 7), (f"gatt.select-attribute {TRIGGER}", 1), (f'gatt.write "{value}"', 2),
              (f"disconnect {box}", 2), ("quit", 0))
     p = subprocess.Popen(["bluetoothctl"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     try:

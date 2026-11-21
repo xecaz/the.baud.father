@@ -69,6 +69,7 @@ public class MainActivity extends Activity {
 
     private TextView stateText, statusText, logText;
     private Button ringBtn, blinkBtn, connectBtn, demoBtn, tryBtn;
+    private Button sayBtn;
     static final int DEMO_RINGTONE = 6;
     private Switch callSwitch, voipSwitch, msgSwitch, miscSwitch, quietSwitch;
     private LinearLayout msgBox, soundsBox;
@@ -198,7 +199,8 @@ public class MainActivity extends Activity {
         blinkBtn = button("Blink the LED", 52, 16);
         now.addView(ringBtn);
         now.addView(row(demoBtn, tryBtn));
-        now.addView(blinkBtn);
+        sayBtn = button("Say…", 52, 16);
+        now.addView(row(sayBtn, blinkBtn));
 
         // Incoming calls
         LinearLayout calls = section(root, "Incoming calls", "Make The Baud Father ring when your phone receives a call.");
@@ -246,8 +248,12 @@ public class MainActivity extends Activity {
         setContentView(scroll);
 
         ringBtn.setOnClickListener(v -> send(CMD_RING, "ring"));
+        sayBtn.setOnClickListener(v -> askSentence());
         tryBtn.setOnClickListener(v ->
-                pickRingtone("Play a ringtone", false, n -> send(Ringtones.cmd(n), Ringtones.name(n))));
+                pickRingtone("Play a ringtone", false, n -> {
+                    if (n == Ringtones.SAY) askSentence();
+                    else send(Ringtones.cmd(n), Ringtones.name(n));
+                }));
         msgSwitch.setOnCheckedChangeListener((v, on) -> {
             if (syncingSwitches) return;
             Ringtones.setOn(this, on);
@@ -318,19 +324,89 @@ public class MainActivity extends Activity {
         syncingSwitches = false;
     }
 
+    // ---------------------------------------------------------------- say (sentences from the box's vocabulary)
+
+    private String lastSentence = "";
+
+    private interface TextPick { void picked(String text); }
+
+    private void askSentence() {
+        askSentence("Say", "Say it", lastSentence, this::say);
+    }
+
+    /** Dialog: type a sentence; the words the box knows are listed below the field. then gets a sentence the box
+     *  can say; one it cannot is reported and dropped. */
+    private void askSentence(String title, String ok, String initial, TextPick then) {
+        android.widget.EditText in = new android.widget.EditText(this);
+        in.setHint("3 new messages");
+        in.setSingleLine(true);
+        in.setText(initial);
+        in.setSelection(initial.length());
+        TextView words = note("Numbers are spelled out, a comma is a short pause, up to " + Vocab.MAX_WORDS
+                + " words.\n\n" + Vocab.words(this));
+        android.widget.ScrollView sc = new android.widget.ScrollView(this);
+        sc.addView(words);
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(20), dp(8), dp(20), 0);
+        box.addView(in);
+        box.addView(sc);
+        new android.app.AlertDialog.Builder(this).setTitle(title)
+                .setView(box)
+                .setPositiveButton(ok, (d, which) -> {
+                    String text = in.getText().toString().trim();
+                    try {
+                        Vocab.spell(this, text);
+                        then.picked(text);
+                    } catch (Vocab.Unknown e) {
+                        log(e.getMessage());
+                        android.widget.Toast.makeText(this, e.getMessage(), android.widget.Toast.LENGTH_LONG).show();
+                    }
+                })
+                .setNegativeButton("Cancel", null).show();
+    }
+
+    private void say(String text) {
+        lastSentence = text.trim();
+        try {
+            List<String> w = Vocab.spell(this, text);
+            send(Vocab.command(this, w), "\"" + String.join(" ", w) + "\"");
+        } catch (Vocab.Unknown e) {
+            log(e.getMessage());
+            android.widget.Toast.makeText(this, e.getMessage(), android.widget.Toast.LENGTH_LONG).show();
+        }
+    }
+
     // ---------------------------------------------------------------- message sounds (app -> ringtone)
 
     private interface IntPick { void picked(int n); }
 
-    /** Dialog with the box's ringtones; withNone adds "No sound (remove)" which reports -1. */
+    /** Dialog with the box's ringtones, then "Say a sentence…" (reports Ringtones.SAY); withNone adds "No sound"
+     *  (reports -1). */
     private void pickRingtone(String title, boolean withNone, IntPick then) {
-        int extra = withNone ? 1 : 0;
-        String[] items = new String[Ringtones.NAMES.length + extra];
-        System.arraycopy(Ringtones.NAMES, 0, items, 0, Ringtones.NAMES.length);
-        if (withNone) items[items.length - 1] = "No sound";
+        final int n = Ringtones.NAMES.length;
+        String[] items = new String[n + 1 + (withNone ? 1 : 0)];
+        System.arraycopy(Ringtones.NAMES, 0, items, 0, n);
+        items[n] = "Say a sentence…";
+        if (withNone) items[n + 1] = "No sound";
         new android.app.AlertDialog.Builder(this).setTitle(title)
-                .setItems(items, (d, which) -> then.picked(which < Ringtones.NAMES.length ? which : -1))
+                .setItems(items, (d, which) -> then.picked(which < n ? which : which == n ? Ringtones.SAY : -1))
                 .setNegativeButton("Cancel", null).show();
+    }
+
+    /** What the user picked for an app: store it and play it once. A sentence is asked for first. */
+    private void mapApp(String pkg, int n) {
+        if (n == Ringtones.SAY) {
+            askSentence(appLabel(pkg), "Save", Ringtones.sentence(this, pkg), text -> {
+                Ringtones.setSentence(this, pkg, text);
+                say(text);
+                refreshSounds();
+            });
+            return;
+        }
+        Ringtones.set(this, pkg, n);
+        if (n >= 0) send(Ringtones.cmd(n), Ringtones.name(n));   // hear it (if connected and idle)
+        refreshSounds();
     }
 
     private String appLabel(String pkg) {
@@ -344,12 +420,8 @@ public class MainActivity extends Activity {
 
     /** One app's row: "App  →  sound"; tap to change, silence or (Misc only) remove, and hear the choice. */
     private Button soundRow(String pkg, int tone, boolean messenger) {
-        Button b = button(appLabel(pkg) + "  →  " + (tone < 0 ? "No sound" : Ringtones.name(tone)), 56, 14);
-        b.setOnClickListener(v -> pickRingtone(appLabel(pkg), true, n -> {
-            Ringtones.set(this, pkg, n);
-            if (n >= 0) send(Ringtones.cmd(n), Ringtones.name(n));   // hear it (if connected and idle)
-            refreshSounds();
-        }));
+        Button b = button(appLabel(pkg) + "  →  " + Ringtones.label(this, pkg, tone), 56, 14);
+        b.setOnClickListener(v -> pickRingtone(appLabel(pkg), true, n -> mapApp(pkg, n)));
         return b;
     }
 
@@ -380,11 +452,7 @@ public class MainActivity extends Activity {
         new android.app.AlertDialog.Builder(this).setTitle("Which app?")
                 .setItems(labels, (d, which) -> {
                     String pkg = byLabel.get(labels[which]);
-                    pickRingtone(appLabel(pkg), false, n -> {
-                        Ringtones.set(this, pkg, n);
-                        send(Ringtones.cmd(n), Ringtones.name(n));
-                        refreshSounds();
-                    });
+                    pickRingtone(appLabel(pkg), false, n -> mapApp(pkg, n));
                 })
                 .setNegativeButton("Cancel", null).show();
     }
@@ -426,6 +494,7 @@ public class MainActivity extends Activity {
             ringBtn.setEnabled(ready && !busy && (boxStatus == 0 || boxStatus == 3));
             demoBtn.setEnabled(ringBtn.isEnabled());
             tryBtn.setEnabled(ringBtn.isEnabled());
+            sayBtn.setEnabled(ready && !busy);   // sentences queue on the box, also during a ring
             blinkBtn.setEnabled(ready && !busy);
             connectBtn.setEnabled(!ready && !scanning);
             connectBtn.setVisibility(ready ? android.view.View.GONE : android.view.View.VISIBLE);
@@ -634,10 +703,14 @@ public class MainActivity extends Activity {
     };
 
     private void send(byte cmd, String what) {
+        send(new byte[]{cmd}, what);
+    }
+
+    private void send(byte[] cmd, String what) {
         if (!ready || busy || gatt == null) return;
         busy = true;
         updateButtons();
-        int r = gatt.writeCharacteristic(triggerChar, new byte[]{cmd},
+        int r = gatt.writeCharacteristic(triggerChar, cmd,
                 BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
         if (r != BluetoothStatusCodes.SUCCESS) {
             busy = false;
